@@ -9,11 +9,6 @@ export interface DownloadedFile {
   filePath: string;
 }
 
-/**
- * 下载 Telegram 文件。
- * 注意：Bot API 单文件上限 20MB，超过需要自建 Local Bot API Server。
- * 生成的下载 URL 含有 Bot Token，禁止写日志。
- */
 export async function downloadFile(api: Api, fileId: string, maxBytes: number): Promise<DownloadedFile> {
   const file = await api.getFile(fileId);
   if (!file.file_path) throw new Error("telegram getFile 未返回 file_path");

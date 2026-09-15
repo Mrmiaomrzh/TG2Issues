@@ -30,7 +30,6 @@ export class Store {
     this.db = db;
   }
 
-  /** true = 这条 update 之前处理过（Webhook 重试） */
   async seenUpdate(updateId: number, chatId?: number): Promise<boolean> {
     const res = await this.db
       .prepare("INSERT OR IGNORE INTO processed_updates (update_id, chat_id, created_at) VALUES (?, ?, ?)")
@@ -39,7 +38,6 @@ export class Store {
     return (res.meta?.changes ?? 0) === 0;
   }
 
-  /** 抢占一条消息的处理权；true = 抢到（首次处理），false = 已有记录 */
   async claim(fb: Feedback, repo: string): Promise<boolean> {
     const res = await this.db
       .prepare(
@@ -74,7 +72,6 @@ export class Store {
       .run();
   }
 
-  /** 按消息定位 Issue（/link 指令用） */
   async findByMessage(chatId: number, messageId: number): Promise<IssueMapRow | null> {
     return await this.db
       .prepare("SELECT * FROM issue_map WHERE chat_id = ? AND message_id = ? LIMIT 1")
@@ -97,7 +94,6 @@ export class Store {
     return row !== null;
   }
 
-  /** Issue -> 原 TG 消息定位（双向同步用） */
   async findIssue(repo: string, issueNumber: number): Promise<IssueMapRow | null> {
     return await this.db
       .prepare("SELECT * FROM issue_map WHERE repo = ? AND issue_number = ? LIMIT 1")
@@ -105,7 +101,6 @@ export class Store {
       .first<IssueMapRow>();
   }
 
-  /** 滑动窗口限流；true = 放行 */
   async rateAllow(userId: number, perMin: number, perDay: number): Promise<boolean> {
     const now = Date.now();
     const dayAgo = now - 24 * 60 * 60 * 1000;
@@ -136,7 +131,6 @@ export class Store {
       .run();
   }
 
-  /** true = 该 delivery 之前已处理过 */
   async seenDelivery(deliveryId: string, event: string): Promise<boolean> {
     const res = await this.db
       .prepare("INSERT OR IGNORE INTO gh_deliveries (delivery_id, event, created_at) VALUES (?, ?, ?)")
@@ -145,17 +139,14 @@ export class Store {
     return (res.meta?.changes ?? 0) === 0;
   }
 
-  /** 清除某条 update 的去重记录（死信重试用） */
   async forgetUpdate(updateId: number): Promise<void> {
     await this.db.prepare("DELETE FROM processed_updates WHERE update_id = ?").bind(updateId).run();
   }
 
-  /** 释放某条消息的占用（死信重试用） */
   async dropClaim(chatId: number, messageId: number): Promise<void> {
     await this.db.prepare("DELETE FROM issue_map WHERE chat_id = ? AND message_id = ?").bind(chatId, messageId).run();
   }
 
-  /** 面板：反馈记录分页查询 */
   async listIssues(options: {
     limit: number;
     offset: number;
@@ -198,7 +189,6 @@ export class Store {
     return { items: rows.results ?? [], total: total?.c ?? 0 };
   }
 
-  /** 面板：最近 N 天每天的建 Issue 数（含 0 的日期由调用方补齐） */
   async dailyCounts(days: number): Promise<Array<{ day: string; c: number }>> {
     const since = new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const rows = await this.db
@@ -211,7 +201,6 @@ export class Store {
     return rows.results ?? [];
   }
 
-  /** 面板：最近 24 小时建 Issue 数 */
   async last24hCount(): Promise<number> {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const row = await this.db
@@ -221,7 +210,6 @@ export class Store {
     return row?.c ?? 0;
   }
 
-  /** 面板：每个会话的反馈量 Top N */
   async topChats(limit = 5): Promise<Array<{ chat_id: number; thread_id: number | null; c: number }>> {
     const rows = await this.db
       .prepare("SELECT chat_id, thread_id, COUNT(*) AS c FROM issue_map GROUP BY chat_id, thread_id ORDER BY c DESC LIMIT ?")
@@ -230,7 +218,6 @@ export class Store {
     return rows.results ?? [];
   }
 
-  /** 面板：死信队列 */
   async listDeadLetters(limit = 50, offset = 0): Promise<{ items: DeadLetterRow[]; total: number }> {
     const total = await this.db.prepare("SELECT COUNT(*) AS c FROM dead_letters").first<{ c: number }>();
     const rows = await this.db
@@ -244,7 +231,6 @@ export class Store {
     return await this.db.prepare("SELECT * FROM dead_letters WHERE id = ?").bind(id).first<DeadLetterRow>();
   }
 
-  /** 死信重试失败后累加尝试次数 */
   async bumpNewestDeadLetter(attempts: number): Promise<void> {
     await this.db
       .prepare("UPDATE dead_letters SET attempts = ? WHERE id = (SELECT MAX(id) FROM dead_letters)")

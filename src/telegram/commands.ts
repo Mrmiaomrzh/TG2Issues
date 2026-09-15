@@ -3,10 +3,8 @@ import type { TgMessage } from "./extract";
 import { replyTo } from "./reply";
 import { escapeHtml } from "../utils";
 
-/** 提交型命令：把命令后面的内容当成一条反馈 */
 export const SUBMIT_COMMANDS = ["/issue", "/bug", "/suggest"];
 
-/** 查询型命令：只回复信息，不建 Issue */
 export const QUERY_COMMANDS = ["/help", "/start", "/issues", "/stats", "/status", "/link"];
 
 export const ALL_COMMANDS = [...QUERY_COMMANDS, ...SUBMIT_COMMANDS];
@@ -16,7 +14,6 @@ export interface ParsedCommand {
   args: string;
 }
 
-/** 解析 "/issues@my_bot 5" 这类命令；不是命令则返回 null */
 export function parseCommand(text: string | undefined): ParsedCommand | null {
   if (!text) return null;
   const trimmed = text.trim();
@@ -57,7 +54,6 @@ export interface IssuesQuery {
   all: boolean;
 }
 
-/** 解析 "/issues 10" / "/issues all" / "/issues all 10"，默认只看当前会话 */
 export function parseIssuesQuery(args: string, fallbackLimit = 5): IssuesQuery {
   const parts = args.split(/\s+/).filter((p) => p.length > 0);
   const all = parts.some((p) => p.toLowerCase() === "all" || p === "全局");
@@ -166,7 +162,6 @@ async function link(msg: TgMessage, deps: Deps): Promise<void> {
   );
 }
 
-/** 处理查询型命令；返回 true 表示已消费该消息 */
 export async function runQueryCommand(cmd: ParsedCommand, msg: TgMessage, deps: Deps): Promise<boolean> {
   switch (cmd.name) {
     case "/help":

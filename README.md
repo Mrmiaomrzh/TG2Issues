@@ -11,8 +11,7 @@ Automatically turn **tips, feedback, suggestions and bug reports** from Telegram
 - Stack: TypeScript + **Hono** (routing) + **grammY** (Telegram API) + **Cloudflare D1** (SQLite state)
 - Triggers: every message in a chosen **forum topic**, slash commands, or all messages in allow-listed chats
 - Content: text + images (images are re-hosted to an assets repo and referenced from the issue)
-- Dashboard: open `/` and sign in with `ADMIN_TOKEN` — no build step
-- Design notes: `REQUIREMENTS.md`
+- Dashboard: open `/` and sign in with your admin token — no build step
 
 ```
 Telegram (group / topic)
@@ -26,7 +25,7 @@ Cloudflare Worker ── Hono router ── returns 200 immediately, then waitUn
 GitHub Issues ── POST /github/webhook (HMAC-SHA256 verified)
    └─ issue comment / closed / reopened ──▶ back to the original Telegram chat
 
-Browser ── GET / (static page, no secrets) ──▶ GET /api/* (Bearer ADMIN_TOKEN)
+Browser ── GET / (static page, no secrets) ──▶ GET /api/* (Bearer admin token)
 ```
 
 ![Dashboard (light)](docs/screenshot-light.png)
@@ -55,24 +54,37 @@ Browser ── GET / (static page, no secrets) ──▶ GET /api/* (Bearer ADMI
 npm install
 ```
 
-### 1.2 Create the D1 database
+### 1.2 Create the D1 database and your Worker config
 ```bash
 npm run db:create
 ```
-Put the `database_id` from the output into the `[[d1_databases]]` section of `wrangler.toml`.
+Then create `wrangler.toml` in the project root with your own values (it is git-ignored, so your account ids and chat ids never reach the repository):
 
-> **Where private config goes**: real chat ids, target repos and the D1 id belong in `wrangler.local.toml` (already git-ignored).
-> `scripts/cf.mjs` prefers that file automatically, so `npm run deploy` / `npm run db:*` never write private values back into the committed template:
->
-> ```bash
-> cp wrangler.toml wrangler.local.toml   # then edit only wrangler.local.toml
-> ```
+```toml
+name = "tg2issues"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+workers_dev = true
 
-### 1.3 Local secrets
-```bash
-cp .dev.vars.example .dev.vars      # Windows: copy .dev.vars.example .dev.vars
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tg2issues"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"   # from npm run db:create
+migrations_dir = "migrations"
+
+[vars]
+TG_TRIGGER_MODE = "command"
+TG_ALLOWED_CHAT_IDS = "-1001234567890"
+GH_REPO = "owner/repo"
 ```
-Fill in `.dev.vars` (git-ignored):
+
+Every supported variable is listed in [section 4](#4-environment-variables).
+
+### 1.3 Secrets
+Create `.dev.vars` in the project root (git-ignored, used by `wrangler dev`):
 
 | Variable | Purpose |
 | --- | --- |
@@ -81,13 +93,6 @@ Fill in `.dev.vars` (git-ignored):
 | GH_TOKEN | Fine-grained PAT with **Issues: Read and write** + **Contents: Read and write** |
 | GH_WEBHOOK_SECRET | Secret for the GitHub reverse webhook (random string) |
 | ADMIN_TOKEN | Token for the dashboard and `/api/*` (any random string) |
-
-### 1.3.1 Optional demo data (to preview the dashboard)
-
-```bash
-npm run db:demo     # 9 sample records + 1 dead letter
-npm run db:clear    # wipe everything
-```
 
 ### 1.4 Migrations
 ```bash
@@ -107,22 +112,15 @@ curl -X POST -H "Authorization: Bearer <ADMIN_TOKEN>" "https://<your-tunnel-host
 
 ### 1.6 Deploy
 ```bash
-npm run deploy                      # same as: node scripts/cf.mjs deploy (picks the right config)
-node scripts/cf.mjs secret put TG_BOT_TOKEN
-node scripts/cf.mjs secret put TG_WEBHOOK_SECRET
-node scripts/cf.mjs secret put GH_TOKEN
-node scripts/cf.mjs secret put GH_WEBHOOK_SECRET
-node scripts/cf.mjs secret put ADMIN_TOKEN
+npm run deploy
+npx wrangler secret put TG_BOT_TOKEN
+npx wrangler secret put TG_WEBHOOK_SECRET
+npx wrangler secret put GH_TOKEN
+npx wrangler secret put GH_WEBHOOK_SECRET
+npx wrangler secret put ADMIN_TOKEN
 npm run db:migrate:remote
 ```
-**Or do it in one command** (reads `.dev.vars` → pushes 5 secrets → applies migrations → deploys → registers the webhook → self-checks):
-
-```bash
-pwsh -File scripts/deploy.ps1              # full run
-pwsh -File scripts/deploy.ps1 -SkipSecrets # secrets unchanged, deploy only
-```
-
-Manual alternative — register the webhook and self-check afterwards:
+Then register the webhook and self-check:
 ```bash
 curl -X POST -H "Authorization: Bearer <ADMIN_TOKEN>" "https://tg2issues.<your-subdomain>.workers.dev/api/actions/set-webhook"
 curl -H "Authorization: Bearer <ADMIN_TOKEN>" "https://tg2issues.<your-subdomain>.workers.dev/api/selfcheck"
@@ -167,7 +165,6 @@ Notes:
 If you do not use forum topics and just want `/bug` and `/issues` in a normal group:
 
 ```toml
-# wrangler.toml (or wrangler.local.toml)
 [vars]
 TG_TRIGGER_MODE = "command"              # commands only; ordinary chat never creates issues
 TG_ALLOWED_CHAT_IDS = "-1001234567890"   # chats allowed to use commands (comma-separated)
@@ -262,13 +259,13 @@ Target repo → Settings → Webhooks → Add webhook:
 | `POST /api/actions/test-issue` | ADMIN_TOKEN | Synthesise a feedback message and run the whole flow |
 | `GET /api/selfcheck` | ADMIN_TOKEN | Self-check (getMe + repo reachability + config health) |
 
-Tokens go either in `Authorization: Bearer <token>` or in the `?token=` query parameter (handy for curl and uptime probes).
+The token goes either in `Authorization: Bearer <token>` or in the `?token=` query parameter (handy for curl and uptime probes).
 
 ---
 
 ## 6. Dashboard
 
-Open the root URL (http://127.0.0.1:8787/ locally, your Worker domain in production). It is a zero-dependency HTML/CSS/JS page that **contains no secrets**; all data comes from `/api/*` and the `ADMIN_TOKEN` you type is kept in browser localStorage (never in the URL, never in logs).
+Open the root URL (http://127.0.0.1:8787/ locally, your Worker domain in production). It is a zero-dependency HTML/CSS/JS page that **contains no secrets**; all data comes from `/api/*` and the admin token you type is kept in browser localStorage (never in the URL, never in logs).
 
 The UI follows **Material 3 Expressive**: M3 dynamic colour tokens (primary / secondary / tertiary / error tonal containers), 28px card corners, pill buttons and navigation indicators, FAB, segmented buttons, state layers with ripple feedback, springy motion curves, light and dark themes.
 
@@ -335,9 +332,9 @@ What the unit tests cover:
 tg2issues/
 ├─ src/
 │  ├─ index.ts              # Hono routes: / (dashboard), /healthz, /tg/webhook, /github/webhook, /api
-│  ├─ admin.ts              # Dashboard API endpoints (/api/*, ADMIN_TOKEN)
+│  ├─ admin.ts              # Dashboard API endpoints (/api/*)
 │  ├─ dashboard.html        # Single-file dashboard (vanilla HTML/CSS/JS, no build step)
-│  ├─ deps.ts               # Dependency wiring / waitUntil scheduling / admin auth
+│  ├─ deps.ts               # Dependency wiring, waitUntil scheduling, admin auth
 │  ├─ pipeline.ts           # Main flow: dedupe → auth → rate limit → extract → assets → render → issue → reply
 │  ├─ config.ts             # Env parsing and config health checks
 │  ├─ store.ts              # D1: idempotency, claims, rate limits, dead letters, dashboard queries
@@ -349,21 +346,17 @@ tg2issues/
 │  │  ├─ api.ts             # grammY Api wrapper: file download
 │  │  ├─ commands.ts        # Command parsing and handlers
 │  │  ├─ extract.ts         # update → Feedback, trigger decisions
-│  │  └─ reply.ts           # Reply / admin notification helpers
+│  │  └─ reply.ts           # Reply and admin notification helpers
 │  └─ github/
 │     ├─ client.ts          # REST client (backoff retries, label fallback)
 │     ├─ render.ts          # Feedback → title/body/labels
 │     ├─ assets.ts          # Image re-hosting (Contents API)
 │     └─ webhook.ts         # Issue events → Telegram
-├─ migrations/              # D1 schema (0001 init, 0002 issue title)
-├─ scripts/
-│  ├─ cf.mjs                # Wrangler wrapper that prefers wrangler.local.toml
-│  ├─ deploy.ps1            # One-command deploy (secrets → migrate → deploy → webhook → self-check)
-│  └─ demo-data.sql         # Sample data for previewing the dashboard
+├─ migrations/              # D1 schema (idempotency tables, issue title column)
 ├─ tests/                   # vitest unit tests
 ├─ docs/                    # Dashboard screenshots
-├─ wrangler.toml            # Public deployment template
-├─ REQUIREMENTS.md          # Requirements and design notes
+├─ .github/workflows/ci.yml # Type check + unit tests
+├─ package.json
 └─ README.md
 ```
 
@@ -371,7 +364,13 @@ tg2issues/
 
 ## 10. Security
 
-Secrets belong in `wrangler secret` (production) and `.dev.vars` / `wrangler.local.toml` (local, both git-ignored). Please report vulnerabilities through GitHub's private reporting channel — see `SECURITY.md`.
+- Secrets live in `wrangler secret` (production) and `.dev.vars` (local). Both are git-ignored — never commit tokens, chat ids or account ids.
+- Telegram webhook requests are validated in **both** the URL path and the `X-Telegram-Bot-Api-Secret-Token` header, compared in constant time.
+- GitHub webhook requests are verified with HMAC-SHA256 (`X-Hub-Signature-256`) and de-duplicated by `X-GitHub-Delivery`.
+- The chat allow-list fails closed: an empty list rejects every message.
+- `update_id` dedupe plus a per-message claim make webhook retries idempotent.
+- Message bodies are scanned for PAT/API-key patterns and redacted before they reach GitHub; HTML comments and forged provenance markers are stripped, and everything rendered into an issue is escaped.
+- Please report vulnerabilities privately (GitHub → Security → Report a vulnerability) rather than in a public issue.
 
 ## 11. License
 

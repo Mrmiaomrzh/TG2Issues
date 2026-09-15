@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "把 Telegram 的提示/反馈自动转发成 GitHub Issue 的机器人（Cloudflare Workers + D1），自带 Web 控制台与 Issue→Telegram 双向同步",
+  "description": "Forward Telegram feedback into GitHub issues (Cloudflare Workers + D1) with a built-in web dashboard and two-way issue sync",
   "keywords": [
     "telegram",
     "telegram-bot",
@@ -28,19 +28,15 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node scripts/cf.mjs dev",
-    "deploy": "node scripts/cf.mjs deploy",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cf-typegen": "node scripts/cf.mjs types",
-    "db:create": "node scripts/cf.mjs d1 create tg2issues",
-    "db:migrate:local": "node scripts/cf.mjs d1 migrations apply tg2issues --local",
-    "db:migrate:remote": "node scripts/cf.mjs d1 migrations apply tg2issues --remote",
-    "db:demo": "node scripts/cf.mjs d1 execute tg2issues --local --file=scripts/demo-data.sql",
-    "db:clear": "node scripts/cf.mjs d1 execute tg2issues --local --command \"DELETE FROM issue_map; DELETE FROM dead_letters; DELETE FROM processed_updates; DELETE FROM rate_events; DELETE FROM gh_deliveries;\"",
-    "tail": "node scripts/cf.mjs tail tg2issues",
-    "deploy:ps": "pwsh -File scripts/deploy.ps1"
+    "db:create": "wrangler d1 create tg2issues",
+    "db:migrate:local": "wrangler d1 migrations apply tg2issues --local",
+    "db:migrate:remote": "wrangler d1 migrations apply tg2issues --remote",
+    "tail": "wrangler tail tg2issues"
   },
   "dependencies": {
     "grammy": "^1.0.0",

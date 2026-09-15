@@ -40,7 +40,6 @@ export function safeJson(value: unknown): string {
   }
 }
 
-/** Telegram HTML parse_mode 的安全转义 */
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -49,7 +48,6 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** 给外部调用加超时，避免面板被慢网络拖住 */
 export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(label + " 超时（" + ms + "ms）")), ms);

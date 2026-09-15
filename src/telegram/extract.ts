@@ -79,7 +79,6 @@ export function messageText(msg: TgMessage): string {
   return (msg.text ?? msg.caption ?? "").trim();
 }
 
-/** FR-2：三种触发模式 */
 export function isTriggered(msg: TgMessage, settings: Settings): boolean {
   if (settings.triggerMode === "all") return true;
   if (settings.triggerMode === "topic") {
@@ -91,7 +90,6 @@ export function isTriggered(msg: TgMessage, settings: Settings): boolean {
   return settings.triggerCommands.includes(first);
 }
 
-/** 去掉命令前缀与 @botname 后缀，保留用户正文 */
 export function stripCommand(text: string, commands: string[]): string {
   const trimmed = text.trim();
   const first = trimmed.split(/\s+/)[0] ?? "";
@@ -142,7 +140,6 @@ export function extractFeedback(msg: TgMessage, updateId: number, settings: Sett
   };
 }
 
-/** 判断「被回复的消息 + 当前消息」的合并文本（FR-3） */
 export function composeText(fb: Feedback): string {
   if (!fb.replyText) return fb.text;
   return "> " + fb.replyText.replace(/\n/g, "\n> ") + "\n\n" + fb.text;

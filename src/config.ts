@@ -59,7 +59,6 @@ export interface Settings {
   dryRun: boolean;
 }
 
-/** 兼容 "owner/repo"、"https://github.com/owner/repo"、"git@github.com:owner/repo.git" 三种写法 */
 export function normalizeRepo(value: string | undefined): string {
   const raw = (value ?? "").trim();
   if (!raw) return "";
@@ -126,7 +125,6 @@ export function loadSettings(env: Env): Settings {
   };
 }
 
-/** 启动/自检：返回配置层面的问题列表（空数组 = 健康） */
 export function configProblems(s: Settings): string[] {
   const problems: string[] = [];
   if (!s.botToken) problems.push("TG_BOT_TOKEN 未配置");

@@ -19,7 +19,6 @@ export interface HandleResult {
   images?: number;
 }
 
-/** 主流程：去重 → 权限 → 命令/触发判定 → 限流 → 抢占 → 提取 → 附件 → 渲染 → 建 Issue → 回执 */
 export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<HandleResult> {
   const msg =
     update.message ?? update.edited_message ?? update.channel_post ?? update.edited_channel_post;
@@ -28,15 +27,14 @@ export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<Handle
 
   const { settings, store } = deps;
 
-  if (await store.seenUpdate(update.update_id, msg.chat.id)) {      // FR-13
+  if (await store.seenUpdate(update.update_id, msg.chat.id)) {
     return { status: "skipped", reason: "update 已处理过（Webhook 重试）" };
   }
-  if (!settings.allowedChatIds.includes(msg.chat.id)) {             // FR-16
+  if (!settings.allowedChatIds.includes(msg.chat.id)) {
     console.log("skip: chat 不在白名单", msg.chat.id);
     return { status: "skipped", reason: "会话不在白名单：" + msg.chat.id };
   }
 
-  // ---- 指令路由（FR-31）----
   const cmd = parseCommand(messageText(msg));
   if (cmd && isQueryCommand(cmd.name)) {
     await runQueryCommand(cmd, msg, deps);
@@ -44,11 +42,10 @@ export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<Handle
   }
   const submitCmd = cmd && isSubmitCommand(cmd.name) ? cmd : null;
 
-  if (!submitCmd && !isTriggered(msg, settings)) {                  // FR-2
+  if (!submitCmd && !isTriggered(msg, settings)) {
     return { status: "skipped", reason: "未命中触发规则" };
   }
 
-  // 命令可以绕过话题限制，同时正文里必须剥掉命令前缀
   const commands = Array.from(new Set([...settings.triggerCommands, ...SUBMIT_COMMANDS]));
   const fb: Feedback = extractFeedback(msg, update.update_id, { ...settings, triggerCommands: commands });
 
@@ -60,7 +57,7 @@ export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<Handle
     return { status: "skipped", reason: "没有可提取的内容" };
   }
 
-  if (fb.senderId !== undefined) {                                  // FR-17
+  if (fb.senderId !== undefined) {
     const allowed = await store.rateAllow(fb.senderId, settings.ratePerMin, settings.ratePerDay);
     if (!allowed) {
       await replyTo(deps, msg, "请求过于频繁，请稍后再试。");
@@ -68,17 +65,17 @@ export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<Handle
     }
   }
 
-  if (!(await store.claim(fb, settings.ghRepo))) {                  // FR-12
+  if (!(await store.claim(fb, settings.ghRepo))) {
     return { status: "skipped", reason: "该消息已转成 Issue 或正在处理中" };
   }
 
   try {
-    if (settings.redactEnable) fb.text = redact(fb.text);           // FR-19
+    if (settings.redactEnable) fb.text = redact(fb.text);
     fb.text = stripInjection(fb.text).trim();
 
     const images: string[] = [];
     const mediaNotes: string[] = [];
-    for (let i = 0; i < fb.media.length; i += 1) {                  // FR-6
+    for (let i = 0; i < fb.media.length; i += 1) {
       const media = fb.media[i];
       if (!media) continue;
       try {
@@ -93,7 +90,7 @@ export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<Handle
 
     const anonymousId =
       settings.anonymizeSender && fb.senderId !== undefined
-        ? await anonymousSenderId(fb.senderId)                      // FR-20
+        ? await anonymousSenderId(fb.senderId)
         : undefined;
 
     const title = buildTitle(fb.text);
@@ -113,20 +110,20 @@ export async function handleUpdate(update: TgUpdate, deps: Deps): Promise<Handle
       return { status: "dry_run", title, images: images.length };
     }
 
-    const issue = await deps.gh.createIssue(settings.ghRepo, {      // FR-10
+    const issue = await deps.gh.createIssue(settings.ghRepo, {
       title,
       body,
       labels,
       assignee: settings.ghDefaultAssignee,
     });
-    await store.markDone(fb.chatId, fb.messageId, issue.number, issue.html_url, title); // FR-15
-    await replyTo(deps, msg, "已创建 Issue <b>#" + issue.number + "</b>\n" + issue.html_url); // FR-11
+    await store.markDone(fb.chatId, fb.messageId, issue.number, issue.html_url, title);
+    await replyTo(deps, msg, "已创建 Issue <b>#" + issue.number + "</b>\n" + issue.html_url);
 
     return { status: "created", title, issueNumber: issue.number, issueUrl: issue.html_url, images: images.length };
   } catch (error) {
     const message = errText(error);
     await store.markFailed(fb.chatId, fb.messageId);
-    await store.deadLetter(safeJson(update), message, 1);           // FR-22
+    await store.deadLetter(safeJson(update), message, 1);
     await notifyAdmin(deps, "创建 Issue 失败：" + message + "\n标题：" + buildTitle(fb.text));
     await replyTo(deps, msg, "创建 Issue 失败，已通知管理员。");
     console.error("处理失败", message);

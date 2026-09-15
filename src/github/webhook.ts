@@ -32,15 +32,14 @@ function issueTarget(row: IssueMapRow) {
   };
 }
 
-/** Issue 评论 / 关闭 / 重开 回流到原 Telegram 会话（M4） */
 export async function handleGithubEvent(event: string, payload: GhEventPayload, deps: Deps): Promise<void> {
   const repo = payload.repository?.full_name;
   const issue = payload.issue;
   if (!repo || !issue) return;
-  if (issue.pull_request) return; // PR 不算 Issue
+  if (issue.pull_request) return;
 
   const row = await deps.store.findIssue(repo, issue.number);
-  if (!row) return; // 不是从 Telegram 转过来的 Issue，忽略
+  if (!row) return;
 
   let text: string | null = null;
 

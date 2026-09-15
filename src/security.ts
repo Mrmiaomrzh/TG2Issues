@@ -1,6 +1,5 @@
 import { sha256Hex } from "./utils";
 
-/** 常见密钥形态，命中即打码（FR-19） */
 const SECRET_PATTERNS: RegExp[] = [
   /gh[pousr]_[A-Za-z0-9]{20,}/g,
   /github_pat_[A-Za-z0-9_]{20,}/g,
@@ -17,7 +16,6 @@ export function redact(text: string): string {
   return out;
 }
 
-/** 定长比较，避免时序侧信道 */
 export function timingSafeEqual(a: string, b: string): boolean {
   const ab = new TextEncoder().encode(a);
   const bb = new TextEncoder().encode(b);
@@ -47,14 +45,12 @@ export async function verifyGithubSignature(
   return timingSafeEqual("sha256=" + hex, header.trim());
 }
 
-/** 剥离用户输入里可能伪造的来源标记与 HTML 注释（防注入/防伪造溯源） */
 export function stripInjection(text: string): string {
   return text
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<\/?(?:details|summary|img|script|iframe)[^>]*>/gi, "");
 }
 
-/** 发送者匿名化：同一 TG 用户在同一仓库里得到稳定的短哈希 ID */
 export async function anonymousSenderId(userId: number): Promise<string> {
   const hex = await sha256Hex("tg2issues:" + String(userId));
   return "TG 用户 #" + hex.slice(0, 6).toUpperCase();

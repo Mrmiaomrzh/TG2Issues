@@ -32,7 +32,6 @@ export class GithubClient {
     return h;
   }
 
-  /** 带指数退避的请求（FR-22），错误信息里不包含 Token */
   async request<T = unknown>(method: string, path: string, body?: unknown, attempts = 3): Promise<T> {
     let lastError: unknown = null;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -68,7 +67,7 @@ export class GithubClient {
     try {
       return await this.request<CreatedIssue>("POST", "/repos/" + repo + "/issues", payload);
     } catch (error) {
-      // label 不存在且 Token 无 repo 写权限时会 422：降级为不带 label 再试一次
+
       if (payload.labels && errText(error).includes(" 422 ")) {
         console.warn("create issue with labels failed, retry without labels");
         delete payload.labels;
@@ -78,7 +77,6 @@ export class GithubClient {
     }
   }
 
-  /** 通过 Contents API 把文件提交到 assets 仓库/分支，返回可引用的下载链接 */
   async uploadAsset(repo: string, path: string, base64Content: string, branch: string, message: string): Promise<string> {
     const payload: Record<string, unknown> = { message, content: base64Content };
     if (branch) payload.branch = branch;
@@ -97,7 +95,7 @@ export class GithubClient {
     try {
       return await send();
     } catch (error) {
-      // 空仓库 / 分支不存在时会 404、409 或 422：去掉 branch 再试，会在默认分支上创建首个提交
+
       const text = errText(error);
       if (payload.branch && / (404|409|422) /.test(text)) {
         console.warn("指定分支上传失败，改为默认分支重试：" + text.slice(0, 120));

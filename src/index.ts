@@ -19,13 +19,11 @@ app.use("*", async (c, next) => {
   c.header("Referrer-Policy", "no-referrer");
 });
 
-/** 控制台页面（页面本身不含密钥，数据接口需要 ADMIN_TOKEN） */
 app.get("/", (c) => {
   c.header("Cache-Control", "no-store");
   return c.html(dashboardHtml);
 });
 
-/** 存活检查（公开，无敏感信息） */
 app.get("/healthz", async (c) => {
   try {
     const stats = await buildDeps(c.env).store.stats();
@@ -35,7 +33,6 @@ app.get("/healthz", async (c) => {
   }
 });
 
-/** Telegram Webhook：路径 secret 与请求头都要校验（FR-18） */
 app.post("/tg/webhook/:secret", async (c) => {
   const deps = buildDeps(c.env);
   const expected = deps.settings.webhookSecret;
@@ -52,11 +49,10 @@ app.post("/tg/webhook/:secret", async (c) => {
     return c.json({ ok: false, error: "invalid json" }, 400);
   }
 
-  schedule(c, handleUpdate(update, deps));   // 先 200，后台处理（FR-21）
+  schedule(c, handleUpdate(update, deps));
   return c.json({ ok: true });
 });
 
-/** GitHub Webhook：HMAC-SHA256 验签 + delivery 去重（M4 双向同步） */
 app.post("/github/webhook", async (c) => {
   const deps = buildDeps(c.env);
   const raw = await c.req.text();
@@ -80,7 +76,6 @@ app.post("/github/webhook", async (c) => {
   return c.json({ ok: true });
 });
 
-/** 控制台数据接口（需 ADMIN_TOKEN） */
 app.route("/api", adminApi);
 
 export default app;

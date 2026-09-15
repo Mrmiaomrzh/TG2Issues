@@ -28,17 +28,15 @@ export function buildDeps(env: Env): Deps {
   };
 }
 
-/** 先返回 200，再用 waitUntil 后台处理（FR-21） */
 export function schedule(c: Ctx, task: Promise<unknown>): void {
   const guarded = task.catch((error) => console.error("后台任务失败", errText(error)));
   try {
     c.executionCtx.waitUntil(guarded);
   } catch {
-    // 非 Workers 运行时（本地单测）忽略
+
   }
 }
 
-/** 管理接口鉴权：Authorization: Bearer <ADMIN_TOKEN> 或 ?token= */
 export function adminAllowed(c: Ctx, expected: string): boolean {
   if (!expected) return false;
   const header = c.req.header("authorization") ?? "";

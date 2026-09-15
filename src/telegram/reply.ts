@@ -2,7 +2,6 @@ import type { Deps } from "../deps";
 import type { TgMessage } from "./extract";
 import { errText } from "../utils";
 
-/** 在消息所在会话/话题内回复（失败只记日志，不影响主流程） */
 export async function replyTo(
   deps: Deps,
   msg: TgMessage,

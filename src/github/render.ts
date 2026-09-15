@@ -19,11 +19,11 @@ export function buildTitle(text: string, maxLen = 80): string {
     .filter((line) => line.length > 0);
 
   let title = lines[0] ?? "";
-  // 首行几乎无信息（如「啊」「求助」）时，用后续行补足上下文
+
   if (title.length < 4 && lines.length > 1) {
     title = lines.join(" ");
   }
-  // 标题是纯文本，去掉 Markdown 强调/代码标记，避免出现 "添加**评论区复制**" 这种残留
+
   title = title
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/__(.+?)__/g, "$1")

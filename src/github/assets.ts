@@ -12,10 +12,6 @@ export function assetPath(prefix: string, fb: Feedback, index: number, ext: stri
   return [prefix, String(year), month, fb.chatId + "_" + fb.messageId + "_" + index + "." + ext].join("/");
 }
 
-/**
- * 把图片/文件转存到 assets 仓库（GitHub 没有公开的 Issue 附件上传 API，只能转存后引用链接）。
- * 返回可引用的 URL；非图片文件返回 null，由调用方决定是否只记文件名。
- */
 export async function rehostMedia(
   settings: Settings,
   api: Api,

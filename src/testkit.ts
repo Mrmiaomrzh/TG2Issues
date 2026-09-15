@@ -8,10 +8,6 @@ export interface TestUpdateOptions {
   now?: number;
 }
 
-/**
- * 合成一条用于自检的 update（控制台「测试一条反馈」用）。
- * 注意：command 模式下必须带上提交指令，否则会被触发判定拦掉——这正是真实用户在群里干的事。
- */
 export function buildTestUpdate(settings: Settings, options: TestUpdateOptions): TgUpdate | { error: string } {
   const chatId = options.chatId ?? settings.allowedChatIds[0];
   if (chatId === undefined) {

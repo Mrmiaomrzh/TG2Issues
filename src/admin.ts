@@ -11,7 +11,6 @@ import { errText, withTimeout } from "./utils";
 
 export const api = new Hono<{ Bindings: Env }>();
 
-/** 面板接口统一鉴权：Authorization: Bearer <ADMIN_TOKEN> 或 ?token= */
 api.use("*", async (c, next) => {
   const deps = buildDeps(c.env);
   if (!adminAllowed(c, deps.settings.adminToken)) {
@@ -46,7 +45,6 @@ function publicConfig(deps: Deps): Record<string, unknown> {
   };
 }
 
-/** 概览：统计 + 最近记录 + 配置体检（默认不调用外部 API，live=1 时附带 Telegram/GitHub 探测） */
 api.get("/overview", async (c) => {
   const deps = buildDeps(c.env);
   const problems = configProblems(deps.settings);
@@ -74,7 +72,7 @@ api.get("/overview", async (c) => {
   };
 
   if (c.req.query("live") === "1") {
-    // 三个外部探测并行执行，并且各自带超时：慢网络不会拖住首屏
+
     const [webhook, bot, repo] = await Promise.all([
       withTimeout(deps.api.getWebhookInfo(), 6000, "getWebhookInfo")
         .then((info) => ({
@@ -102,7 +100,6 @@ api.get("/overview", async (c) => {
   return c.json(result);
 });
 
-/** 最近 N 天活动（用于概览页柱状图） */
 api.get("/activity", async (c) => {
   const deps = buildDeps(c.env);
   const days = Math.min(Math.max(Number(c.req.query("days") ?? "14") || 14, 3), 60);
@@ -124,7 +121,6 @@ api.get("/activity", async (c) => {
   });
 });
 
-/** 反馈记录分页查询 */
 api.get("/issues", async (c) => {
   const deps = buildDeps(c.env);
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? "20") || 20, 1), 100);
@@ -141,7 +137,6 @@ api.get("/issues", async (c) => {
   return c.json({ ok: true, total, limit, offset, items });
 });
 
-/** 死信队列 */
 api.get("/dead-letters", async (c) => {
   const deps = buildDeps(c.env);
   const limit = Math.min(Math.max(Number(c.req.query("limit") ?? "20") || 20, 1), 100);
@@ -157,7 +152,6 @@ api.get("/dead-letters/:id", async (c) => {
   return c.json({ ok: true, item: row });
 });
 
-/** 重试死信：清掉去重记录与占用后重跑整条流程 */
 api.post("/dead-letters/:id/retry", async (c) => {
   const deps = buildDeps(c.env);
   const id = Number(c.req.param("id"));
@@ -175,7 +169,6 @@ api.post("/dead-letters/:id/retry", async (c) => {
   await deps.store.forgetUpdate(update.update_id);
   if (msg) await deps.store.dropClaim(msg.chat.id, msg.message_id);
 
-  // 先删旧记录：handleUpdate 失败时会写入新的死信，避免重复堆积
   await deps.store.deleteDeadLetter(id);
 
   const result: HandleResult = await handleUpdate(update, deps);
@@ -191,7 +184,6 @@ api.delete("/dead-letters/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-/** 把 Telegram Webhook 指到当前 Worker */
 api.post("/actions/set-webhook", async (c) => {
   const deps = buildDeps(c.env);
   const url = new URL(c.req.url).origin + "/tg/webhook/" + deps.settings.webhookSecret;
@@ -209,7 +201,6 @@ api.post("/actions/delete-webhook", async (c) => {
   return c.json({ ok: true });
 });
 
-/** 面板上的「测试一条反馈」：合成 update 跑一遍完整流程（尊重 DRY_RUN） */
 api.post("/actions/test-issue", async (c) => {
   const deps = buildDeps(c.env);
   const body = (await c.req.json().catch(() => ({}))) as { text?: string; chatId?: number; threadId?: number };
@@ -224,7 +215,6 @@ api.post("/actions/test-issue", async (c) => {
   return c.json({ ok: true, result });
 });
 
-/** 自检：配置问题 + getMe + 仓库可达性 */
 api.get("/selfcheck", async (c) => {
   const deps = buildDeps(c.env);
   const problems = configProblems(deps.settings);
