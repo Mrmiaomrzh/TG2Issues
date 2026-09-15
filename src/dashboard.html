@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TG2Issues 控制台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='7' fill='%236750A4'/%3E%3Cpath d='M5 9h11l-2.5-2.5M19 15H8l2.5 2.5' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+
+  :root {
+    color-scheme: light;
+    --primary:#6750A4; --on-primary:#FFFFFF;
+    --primary-container:#EADDFF; --on-primary-container:#21005D;
+    --secondary:#625B71; --on-secondary:#FFFFFF;
+    --secondary-container:#E8DEF8; --on-secondary-container:#1D192B;
+    --tertiary:#7D5260; --on-tertiary:#FFFFFF;
+    --tertiary-container:#FFD8E4; --on-tertiary-container:#31111D;
+    --error:#B3261E; --on-error:#FFFFFF; --error-container:#F9DEDC; --on-error-container:#410E0B;
+    --ok:#146C2E; --ok-container:#B7F2C4; --on-ok-container:#00210B;
+    --warn:#7A5900; --warn-container:#FFDF9E; --on-warn-container:#261A00;
+    --surface:#FEF7FF; --on-surface:#1D1B20;
+    --surface-lowest:#FFFFFF; --surface-low:#F7F2FA; --surface-mid:#F3EDF7;
+    --surface-high:#ECE6F0; --surface-highest:#E6E0E9;
+    --on-surface-variant:#49454F; --outline:#79747E; --outline-variant:#CAC4D0;
+    --inverse-surface:#322F35; --inverse-on-surface:#F5EFF7; --inverse-primary:#D0BCFF;
+    --scrim:rgba(0,0,0,.32);
+    --shape-xs:4px; --shape-sm:8px; --shape-md:12px; --shape-lg:16px; --shape-xl:28px; --shape-full:999px;
+    --ease-emphasized:cubic-bezier(.2,0,0,1);
+    --ease-spring:cubic-bezier(.34,1.4,.64,1);
+    --dur-short:150ms; --dur-med:300ms; --dur-long:450ms;
+    --elev-1:0 1px 2px rgba(0,0,0,.10), 0 1px 3px 1px rgba(0,0,0,.06);
+    --elev-2:0 1px 2px rgba(0,0,0,.12), 0 2px 6px 2px rgba(0,0,0,.08);
+    --elev-3:0 4px 8px 3px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.12);
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --primary:#D0BCFF; --on-primary:#381E72;
+    --primary-container:#4F378B; --on-primary-container:#EADDFF;
+    --secondary:#CCC2DC; --on-secondary:#332D41;
+    --secondary-container:#4A4458; --on-secondary-container:#E8DEF8;
+    --tertiary:#EFB8C8; --on-tertiary:#492532;
+    --tertiary-container:#633B48; --on-tertiary-container:#FFD8E4;
+    --error:#F2B8B5; --on-error:#601410; --error-container:#8C1D18; --on-error-container:#F9DEDC;
+    --ok:#8BD99F; --ok-container:#1B4B2A; --on-ok-container:#B7F2C4;
+    --warn:#E9C46A; --warn-container:#4A3A00; --on-warn-container:#FFDF9E;
+    --surface:#141218; --on-surface:#E6E0E9;
+    --surface-lowest:#0F0D13; --surface-low:#1D1B20; --surface-mid:#211F26;
+    --surface-high:#2B2930; --surface-highest:#36343B;
+    --on-surface-variant:#CAC4D0; --outline:#938F99; --outline-variant:#49454F;
+    --inverse-surface:#E6E0E9; --inverse-on-surface:#322F35; --inverse-primary:#6750A4;
+    --scrim:rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--surface); color: var(--on-surface);
+    font-family: Roboto, "Roboto Flex", -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, p { margin: 0; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .hidden { display: none !important; }
+  .spacer { flex: 1; }
+  .mono { font-family: "Roboto Mono", ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--on-surface-variant); }
+  ::selection { background: var(--primary-container); color: var(--on-primary-container); }
+
+  /* ---------- 状态层与波纹 ---------- */
+  .state { position: relative; overflow: hidden; }
+  .state::after {
+    content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+    transition: opacity var(--dur-short) var(--ease-emphasized); pointer-events: none;
+  }
+  .state:hover::after { opacity: .08; }
+  .state:focus-visible::after { opacity: .12; }
+  .ripple {
+    position: absolute; border-radius: var(--shape-full); background: currentColor; opacity: .18;
+    transform: scale(0); pointer-events: none;
+    animation: ripple var(--dur-long) var(--ease-emphasized) forwards;
+  }
+  @keyframes ripple { to { transform: scale(2.2); opacity: 0; } }
+
+  /* ---------- 按钮 ---------- */
+  .btn {
+    position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 40px; padding: 0 20px; border: 0; border-radius: var(--shape-full);
+    background: var(--primary); color: var(--on-primary);
+    font: 500 14px/1 inherit; letter-spacing: .01em; cursor: pointer;
+    transition: border-radius var(--dur-med) var(--ease-spring), box-shadow var(--dur-short), transform var(--dur-short), background var(--dur-short);
+  }
+  .btn:hover { border-radius: var(--shape-lg); box-shadow: var(--elev-1); }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .38; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn:disabled:hover { border-radius: var(--shape-full); }
+  .btn.tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .btn.outlined { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+  .btn.text { background: transparent; color: var(--primary); padding: 0 12px; }
+  .btn.danger { background: var(--error-container); color: var(--on-error-container); }
+  .btn.danger-solid { background: var(--error); color: var(--on-error); }
+  .btn.sm { height: 32px; padding: 0 14px; font-size: 13px; }
+  .btn.sm.text { padding: 0 8px; }
+
+  .icon-btn {
+    position: relative; overflow: hidden; display: inline-grid; place-items: center; width: 40px; height: 40px;
+    border: 0; border-radius: var(--shape-full); background: transparent; color: var(--on-surface-variant);
+    cursor: pointer; transition: background var(--dur-short), color var(--dur-short), border-radius var(--dur-med) var(--ease-spring);
+  }
+  .icon-btn:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); color: var(--on-surface); }
+  .icon-btn.on { background: var(--primary-container); color: var(--on-primary-container); }
+  .icon-btn.sm { width: 32px; height: 32px; }
+
+  .fab {
+    position: fixed; right: 24px; bottom: 24px; z-index: 30;
+    display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 20px;
+    border: 0; border-radius: var(--shape-lg); background: var(--primary-container); color: var(--on-primary-container);
+    box-shadow: var(--elev-3); font: 500 15px/1 inherit; cursor: pointer; overflow: hidden;
+    transition: border-radius var(--dur-med) var(--ease-spring), box-shadow var(--dur-short), transform var(--dur-short);
+  }
+  .fab:hover { border-radius: var(--shape-xl); box-shadow: var(--elev-3), var(--elev-1); }
+  .fab:active { transform: scale(.96); }
+
+  /* ---------- 输入 ---------- */
+  .field { position: relative; display: flex; align-items: center; gap: 8px; }
+  .field > svg { position: absolute; left: 14px; color: var(--on-surface-variant); pointer-events: none; }
+  input[type=text], input[type=password], textarea, select {
+    width: 100%; border: 1px solid var(--outline); border-radius: var(--shape-full);
+    background: transparent; color: var(--on-surface); font: 400 14px/1.5 inherit;
+    padding: 0 18px; height: 48px; outline: none;
+    transition: border-color var(--dur-short), box-shadow var(--dur-short), background var(--dur-short);
+  }
+  .field > svg + input { padding-left: 46px; }
+  textarea { height: auto; min-height: 96px; padding: 14px 18px; border-radius: var(--shape-lg); resize: vertical; }
+  select { border-radius: var(--shape-full); appearance: none; padding-right: 40px; cursor: pointer; }
+  .select-wrap { position: relative; display: inline-flex; }
+  .select-wrap > svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--on-surface-variant); pointer-events: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+  input::placeholder, textarea::placeholder { color: var(--on-surface-variant); }
+
+  /* ---------- 应用外壳 ---------- */
+  .shell { display: grid; grid-template-columns: 256px 1fr; min-height: 100vh; }
+  .drawer {
+    position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 14px;
+    padding: 16px 12px; background: var(--surface-low); border-right: 1px solid var(--outline-variant);
+  }
+  .drawer-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px 14px; }
+  .mark {
+    width: 40px; height: 40px; display: grid; place-items: center; flex: 0 0 auto;
+    border-radius: var(--shape-lg); background: var(--primary); color: var(--on-primary);
+  }
+  .drawer-head .name { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .drawer-head .tag { font-size: 11.5px; color: var(--on-surface-variant); }
+  .nav-list { display: flex; flex-direction: column; gap: 4px; }
+  .nav-list button {
+    position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; width: 100%; height: 56px;
+    padding: 0 16px; border: 0; border-radius: var(--shape-full); background: transparent; color: var(--on-surface-variant);
+    font: 500 14px/1 inherit; text-align: left; cursor: pointer;
+    transition: background var(--dur-med) var(--ease-emphasized), color var(--dur-short), border-radius var(--dur-med) var(--ease-spring);
+  }
+  .nav-list button:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); color: var(--on-surface); }
+  .nav-list button.active { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .nav-list button .badge {
+    margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--shape-full);
+    background: var(--error); color: var(--on-error); font: 600 11px/20px inherit; text-align: center;
+  }
+  .nav-list button .badge.zero { background: var(--surface-high); color: var(--on-surface-variant); }
+  .drawer-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  .drawer-note {
+    background: var(--surface-mid); border-radius: var(--shape-lg); padding: 14px;
+    font-size: 11.5px; line-height: 1.7; color: var(--on-surface-variant);
+  }
+  .drawer-note b { color: var(--on-surface); font-weight: 600; }
+  .drawer-actions { display: flex; gap: 8px; }
+  .drawer-actions .btn { flex: 1; }
+
+  .scaffold { min-width: 0; display: flex; flex-direction: column; }
+  .app-bar {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 14px 28px; background: var(--surface); border-bottom: 1px solid var(--outline-variant);
+  }
+  .app-bar h1 { font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+  .app-bar .sub { font-size: 12px; color: var(--on-surface-variant); width: 100%; margin-top: -2px; }
+  .conn {
+    display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px;
+    border-radius: var(--shape-full); background: var(--surface-mid); color: var(--on-surface-variant);
+    font-size: 12.5px; font-weight: 500;
+  }
+  .conn .dot { width: 8px; height: 8px; border-radius: var(--shape-full); background: currentColor; }
+  .conn.ok { background: var(--ok-container); color: var(--on-ok-container); }
+  .conn.warn { background: var(--warn-container); color: var(--on-warn-container); }
+
+  .content { padding: 24px 28px 120px; max-width: 1360px; width: 100%; }
+  .page { animation: page-in var(--dur-med) var(--ease-emphasized) both; }
+  @keyframes page-in { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: none; } }
+
+  /* ---------- 卡片 ---------- */
+  .card {
+    background: var(--surface-low); border-radius: var(--shape-xl); overflow: hidden;
+    transition: background var(--dur-short), box-shadow var(--dur-med);
+  }
+  .card.elevated { background: var(--surface-low); box-shadow: var(--elev-1); }
+  .card + .card, .card + .grid-2, .grid-2 + .card, .stats + .grid-2, .stats + .card { margin-top: 20px; }
+  .card-head { display: flex; align-items: center; gap: 10px; padding: 20px 24px 14px; flex-wrap: wrap; }
+  .card-head .ttl { font-size: 16px; font-weight: 500; letter-spacing: .01em; }
+  .card-head .desc { font-size: 12.5px; color: var(--on-surface-variant); }
+  .card-body { padding: 0 24px 24px; }
+  .grid-2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-3 + .card { margin-top: 20px; }
+
+  /* ---------- 指标卡（M3E 色调容器） ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .stat {
+    position: relative; overflow: hidden; border-radius: var(--shape-xl); padding: 20px;
+    display: flex; flex-direction: column; gap: 10px; min-height: 148px;
+    transition: transform var(--dur-med) var(--ease-spring), box-shadow var(--dur-short);
+  }
+  .stat:hover { transform: translateY(-3px); box-shadow: var(--elev-2); }
+  .stat.c1 { background: var(--primary-container); color: var(--on-primary-container); }
+  .stat.c2 { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+  .stat.c3 { background: var(--error-container); color: var(--on-error-container); }
+  .stat.c4 { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .stat .top { display: flex; align-items: center; gap: 10px; font: 500 13px/1 inherit; }
+  .stat .num { font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -.02em; margin-top: auto; }
+  .stat .hint { font-size: 11.5px; opacity: .78; }
+
+  /* ---------- 图表 ---------- */
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 170px; padding-top: 6px; }
+  .chart .col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px; }
+  .chart .bar {
+    width: 100%; max-width: 34px; border-radius: var(--shape-sm) var(--shape-sm) var(--shape-xs) var(--shape-xs);
+    background: var(--primary); transition: height var(--dur-long) var(--ease-spring), border-radius var(--dur-med) var(--ease-spring);
+  }
+  .chart .col:hover .bar { border-radius: var(--shape-full); }
+  .chart .bar.zero { background: var(--surface-high); }
+  .chart .cv { font-size: 11px; font-weight: 600; color: var(--on-surface-variant); }
+  .chart .x { font-size: 10.5px; color: var(--on-surface-variant); height: 14px; }
+
+  /* ---------- 列表 / 表格 ---------- */
+  .list-item {
+    display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-radius: var(--shape-lg);
+    transition: background var(--dur-short);
+  }
+  .list-item:hover { background: color-mix(in srgb, var(--on-surface) 6%, transparent); }
+  .list-item .t { font-size: 14px; font-weight: 500; }
+  .list-item .m { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+  .avatar {
+    width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center;
+    border-radius: var(--shape-full); background: var(--primary-container); color: var(--on-primary-container);
+    font: 600 13px/1 inherit;
+  }
+  .avatar.ok { background: var(--ok-container); color: var(--on-ok-container); }
+  .avatar.warn { background: var(--warn-container); color: var(--on-warn-container); }
+  .avatar.err { background: var(--error-container); color: var(--on-error-container); }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  th {
+    text-align: left; padding: 12px 20px; font: 500 11.5px/1 inherit; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--on-surface-variant); background: var(--surface-mid); position: sticky; top: 0; z-index: 1;
+  }
+  th:first-child { border-radius: var(--shape-lg) 0 0 var(--shape-lg); }
+  th:last-child { border-radius: 0 var(--shape-lg) var(--shape-lg) 0; }
+  td { padding: 14px 20px; border-bottom: 1px solid var(--outline-variant); vertical-align: middle; }
+  tbody tr { transition: background var(--dur-short); }
+  tbody tr:hover { background: color-mix(in srgb, var(--on-surface) 5%, transparent); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .cell-main { font-size: 13.5px; font-weight: 500; }
+  .cell-sub { font-size: 11.5px; color: var(--on-surface-variant); }
+  .truncate { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 12px;
+    border-radius: var(--shape-sm); font: 500 12px/1 inherit; white-space: nowrap;
+  }
+  .pill .dot { width: 7px; height: 7px; border-radius: var(--shape-full); background: currentColor; }
+  .pill.done { background: var(--ok-container); color: var(--on-ok-container); }
+  .pill.pending { background: var(--warn-container); color: var(--on-warn-container); }
+  .pill.failed { background: var(--error-container); color: var(--on-error-container); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px;
+    border: 1px solid var(--outline-variant); border-radius: var(--shape-sm); color: var(--on-surface-variant);
+    font: 500 12.5px/1 inherit; background: transparent;
+  }
+
+  .seg { display: inline-flex; border: 1px solid var(--outline); border-radius: var(--shape-full); overflow: hidden; }
+  .seg button {
+    position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 16px;
+    border: 0; border-left: 1px solid var(--outline); background: transparent; color: var(--on-surface);
+    font: 500 13px/1 inherit; cursor: pointer; transition: background var(--dur-short);
+  }
+  .seg button:first-child { border-left: 0; }
+  .seg button:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+  .seg button.active { background: var(--secondary-container); color: var(--on-secondary-container); }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 24px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .kv { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--outline-variant); }
+  .kv:last-child { border-bottom: 0; }
+  .kv .k { color: var(--on-surface-variant); font-size: 13px; }
+  .kv .v { font-weight: 500; text-align: right; word-break: break-all; font-size: 13.5px; }
+  .bar-line { height: 8px; border-radius: var(--shape-full); background: var(--surface-high); overflow: hidden; }
+  .bar-line i { display: block; height: 100%; border-radius: var(--shape-full); background: var(--primary); transition: width var(--dur-long) var(--ease-emphasized); }
+  .group-title { font: 500 11.5px/1 inherit; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); margin: 22px 0 6px; }
+
+  /* ---------- 提示 / 空态 / 骨架 ---------- */
+  .banner {
+    display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; border-radius: var(--shape-xl);
+    margin-bottom: 20px; font-size: 13.5px;
+  }
+  .banner .ic { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--shape-full); }
+  .banner.ok { background: var(--ok-container); color: var(--on-ok-container); }
+  .banner.warn { background: var(--warn-container); color: var(--on-warn-container); }
+  .banner ul { margin: 8px 0 0; padding-left: 18px; }
+  .banner b { font-weight: 600; }
+  .empty { padding: 56px 20px; text-align: center; color: var(--on-surface-variant); }
+  .empty .ring {
+    width: 64px; height: 64px; margin: 0 auto 16px; display: grid; place-items: center;
+    border-radius: var(--shape-full); background: var(--surface-high); color: var(--on-surface-variant);
+  }
+  .empty .t { font-size: 15px; font-weight: 500; color: var(--on-surface); }
+  .empty .s { font-size: 12.5px; margin-top: 6px; }
+  .sk {
+    border-radius: var(--shape-lg);
+    background: linear-gradient(90deg, var(--surface-mid) 25%, var(--surface-high) 37%, var(--surface-mid) 63%);
+    background-size: 400% 100%; animation: sk 1.4s var(--ease-emphasized) infinite;
+  }
+  @keyframes sk { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+  .code {
+    font-family: "Roboto Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px;
+    background: var(--surface-high); border-radius: var(--shape-xs); padding: 2px 7px;
+  }
+
+  /* ---------- 登录 ---------- */
+  .login {
+    min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background:
+      radial-gradient(700px 420px at 14% 8%, color-mix(in srgb, var(--primary-container) 90%, transparent), transparent 65%),
+      radial-gradient(660px 400px at 88% 94%, color-mix(in srgb, var(--tertiary-container) 85%, transparent), transparent 65%),
+      var(--surface);
+  }
+  .login-card {
+    width: 100%; max-width: 460px; background: var(--surface-low); border-radius: var(--shape-xl);
+    box-shadow: var(--elev-3); padding: 36px 32px;
+    animation: page-in var(--dur-long) var(--ease-spring) both;
+  }
+  .login-card h1 { font-size: 32px; font-weight: 500; letter-spacing: -.02em; margin: 22px 0 8px; }
+  .login-card .lead { color: var(--on-surface-variant); font-size: 13.5px; margin-bottom: 26px; }
+  .login-card .row { display: flex; gap: 10px; }
+  .login-card .row input { flex: 1; }
+  .login-card .foot { margin-top: 24px; font-size: 12px; color: var(--on-surface-variant); line-height: 1.8; }
+
+  /* ---------- 对话框 / 快餐条 ---------- */
+  .scrim {
+    position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px;
+    background: var(--scrim); animation: fade var(--dur-short) var(--ease-emphasized) both;
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .dialog {
+    width: 100%; max-width: 560px; background: var(--surface-high); border-radius: var(--shape-xl);
+    box-shadow: var(--elev-3); padding: 26px 24px 18px; animation: dialog-in var(--dur-med) var(--ease-spring) both;
+  }
+  .dialog.wide { max-width: 860px; }
+  @keyframes dialog-in { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+  .dialog .d-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--shape-full); background: var(--secondary-container); color: var(--on-secondary-container); margin-bottom: 14px; }
+  .dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+  .dialog .d-body { margin-top: 12px; font-size: 14px; line-height: 1.65; color: var(--on-surface-variant); }
+  .dialog .d-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+  .dialog textarea { background: var(--surface-low); border-radius: var(--shape-lg); }
+  pre {
+    margin: 0; padding: 18px; background: var(--surface-lowest); border-radius: var(--shape-lg);
+    font: 12.5px/1.7 "Roboto Mono", ui-monospace, Menlo, Consolas, monospace; overflow: auto; max-height: 52vh;
+  }
+
+  .snackbar-host { position: fixed; left: 24px; bottom: 24px; z-index: 90; display: flex; flex-direction: column; gap: 10px; }
+  .snackbar {
+    display: flex; align-items: center; gap: 14px; min-width: 300px; max-width: 420px;
+    padding: 14px 18px; border-radius: var(--shape-sm); background: var(--inverse-surface); color: var(--inverse-on-surface);
+    box-shadow: var(--elev-3); font-size: 13.5px; animation: snack-in var(--dur-med) var(--ease-spring) both;
+  }
+  .snackbar.out { animation: snack-out var(--dur-short) var(--ease-emphasized) both; }
+  @keyframes snack-in { from { opacity: 0; transform: translateY(24px) scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes snack-out { to { opacity: 0; transform: translateY(12px); } }
+  .snackbar .txt { flex: 1; }
+  .snackbar .act { color: var(--inverse-primary); font-weight: 500; cursor: pointer; background: none; border: 0; font-size: 13.5px; }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width: 1180px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .drawer {
+      position: static; height: auto; flex-direction: row; align-items: center; gap: 12px;
+      overflow-x: auto; padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--outline-variant);
+    }
+    .nav-list { flex-direction: row; }
+    .nav-list button { height: 44px; padding: 0 14px; white-space: nowrap; }
+    .drawer-head, .drawer-foot { display: none; }
+    .app-bar { padding: 14px 16px; }
+    .content { padding: 16px 16px 120px; }
+    .fab { right: 16px; bottom: 16px; }
+    .snackbar-host { left: 16px; right: 16px; bottom: 88px; }
+  }
+  @media (max-width: 620px) {
+    .stats { grid-template-columns: 1fr; }
+    .chart { height: 140px; gap: 5px; }
+    .app-bar h1 { font-size: 19px; }
+    .login-card { padding: 28px 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::after, *::before { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+  .chip { position: relative; overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+  <div class="login-card">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
+      </span>
+      <div>
+        <div style="font-size:15px;font-weight:600">TG2Issues</div>
+        <div class="muted" style="font-size:11.5px">Telegram → GitHub Issues</div>
+      </div>
+    </div>
+    <h1>控制台登录</h1>
+    <p class="lead">输入部署时设置的 <span class="code">ADMIN_TOKEN</span>，查看反馈记录、死信队列与运行状态。</p>
+    <div class="row">
+      <div class="field">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <input type="password" id="token-input" placeholder="ADMIN_TOKEN" autocomplete="current-password" />
+      </div>
+      <button class="btn" id="btn-login">连接</button>
+    </div>
+    <div class="foot">
+      令牌只保存在本机浏览器的 localStorage，不会写入 URL 或日志。<br />
+      也可以用 <span class="code">#token=xxx</span> 直接进入（片段不会发送到服务器）。
+    </div>
+  </div>
+</div>
+
+<div id="app" class="shell hidden">
+  <aside class="drawer">
+    <div class="drawer-head">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
+      </span>
+      <div>
+        <div class="name">TG2Issues</div>
+        <div class="tag">控制台</div>
+      </div>
+    </div>
+
+    <nav class="nav-list" id="nav">
+      <button data-page="overview" class="active" data-icon="overview">概览</button>
+      <button data-page="feed" data-icon="feed">反馈记录</button>
+      <button data-page="dead" data-icon="dead">死信队列<span class="badge zero" id="nav-dead">0</span></button>
+      <button data-page="runtime" data-icon="runtime">运行状态</button>
+      <button data-page="config" data-icon="config">配置与体检</button>
+    </nav>
+
+    <div class="drawer-foot">
+      <div class="drawer-note" id="side-note">正在加载…</div>
+      <div class="drawer-actions">
+        <button class="btn tonal sm" id="btn-theme">深色</button>
+        <button class="btn text sm" id="btn-logout">退出</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="scaffold">
+    <header class="app-bar">
+      <h1 id="page-title">概览</h1>
+      <span class="spacer"></span>
+      <span class="conn" id="conn"><span class="dot"></span>未连接</span>
+      <button class="icon-btn" id="btn-auto" title="自动刷新">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l4 2"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-refresh" title="刷新">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <p class="sub" id="page-sub">Telegram 反馈到 GitHub Issue 的整体情况</p>
+    </header>
+
+    <main class="content">
+      <section class="page" id="page-overview">
+        <div id="overview-alert"></div>
+        <div class="stats" id="stats"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><span class="ttl">最近 14 天</span><span class="desc">每天创建的 Issue 数</span></div>
+            <div class="card-body" id="chart"><div class="sk" style="height:170px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="ttl">活跃来源</span><span class="desc">按会话 / 话题统计</span></div>
+            <div class="card-body" id="top-chats"><div class="sk" style="height:130px"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <span class="ttl">最近反馈</span><span class="desc">最新 8 条转入的 Issue</span>
+            <span class="spacer"></span>
+            <button class="btn text sm" data-goto="feed">查看全部</button>
+          </div>
+          <div class="card-body" style="padding-top:4px" id="recent"><div class="sk" style="height:180px"></div></div>
+        </div>
+      </section>
+
+      <section class="page hidden" id="page-feed">
+        <div class="card">
+          <div class="toolbar">
+            <div class="field" style="flex:1;min-width:240px">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input type="text" id="feed-q" placeholder="搜索标题 / 会话 / 消息 ID / Issue 号" />
+            </div>
+            <div class="seg" id="feed-status">
+              <button data-status="all" class="active">全部</button>
+              <button data-status="done">已建 Issue</button>
+              <button data-status="pending">处理中</button>
+              <button data-status="failed">失败</button>
+            </div>
+            <div class="select-wrap">
+              <select id="feed-limit">
+                <option value="20">每页 20 条</option>
+                <option value="50">每页 50 条</option>
+                <option value="100">每页 100 条</option>
+              </select>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <span class="muted" id="feed-meta" style="font-size:12.5px"></span>
+          </div>
+          <div id="feed-table"><div class="sk" style="height:220px;margin:0 24px 24px"></div></div>
+          <div class="toolbar" style="justify-content:flex-end;padding-top:8px">
+            <button class="btn outlined sm" id="feed-prev">上一页</button>
+            <button class="btn outlined sm" id="feed-next">下一页</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page hidden" id="page-dead">
+        <div class="card">
+          <div class="card-head">
+            <span class="ttl">死信队列</span>
+            <span class="desc">创建 Issue 失败、需要人工处理的原始 update</span>
+            <span class="spacer"></span>
+            <button class="btn text sm" id="dead-reload">重新加载</button>
+          </div>
+          <div class="card-body" id="dead-table" style="padding-top:4px"><div class="sk" style="height:180px"></div></div>
+        </div>
+      </section>
+
+      <section class="page hidden" id="page-runtime">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-head"><span class="ttl">Telegram Bot</span></div>
+            <div class="card-body" id="rt-bot"><div class="sk" style="height:80px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="ttl">Webhook</span></div>
+            <div class="card-body" id="rt-hook"><div class="sk" style="height:80px"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="ttl">GitHub 仓库</span></div>
+            <div class="card-body" id="rt-repo"><div class="sk" style="height:80px"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="ttl">运维操作</span><span class="desc">影响线上接收链路，请谨慎操作</span></div>
+          <div class="card-body">
+            <div class="actions">
+              <button class="btn tonal" id="btn-selfcheck">运行自检</button>
+              <button class="btn" id="btn-set-hook">设置 Telegram Webhook</button>
+              <button class="btn danger" id="btn-del-hook">删除 Webhook</button>
+              <button class="btn outlined" id="btn-test">发送测试反馈</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="ttl">Telegram 指令</span><span class="desc">群里或私聊 Bot 时可用</span></div>
+          <div class="card-body" id="cmd-table"></div>
+        </div>
+      </section>
+
+      <section class="page hidden" id="page-config">
+        <div id="config-alert"></div>
+        <div class="card">
+          <div class="card-head"><span class="ttl">当前生效配置</span><span class="desc">不含任何密钥</span></div>
+          <div class="card-body" id="config-body"><div class="sk" style="height:280px"></div></div>
+        </div>
+      </section>
+    </main>
+
+    <button class="fab" id="fab">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      测试反馈
+    </button>
+  </div>
+</div>
+
+<div id="dialog-host" class="hidden"></div>
+<div class="snackbar-host" id="snackbars"></div>
+<script>
+(function () {
+  "use strict";
+
+  var LS_TOKEN = "tg2issues.token";
+  var LS_THEME = "tg2issues.theme";
+  var ICON = {
+    overview: '<rect x="3" y="3" width="7" height="7" rx="2.4"/><rect x="14" y="3" width="7" height="7" rx="2.4"/><rect x="3" y="14" width="7" height="7" rx="2.4"/><rect x="14" y="14" width="7" height="7" rx="2.4"/>',
+    feed: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    dead: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    runtime: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    config: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    alert: '<path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/>',
+    bolt: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+    inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/>',
+    trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+    rotate: '<path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v6h6"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="3"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    send: '<path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>'
+  };
+  var ICO = {
+    ok: "check", err: "alert", info: "info", warn: "alert"
+  };
+
+  function svg(name, size) {
+    var s = size || 20;
+    return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[name] || "") + "</svg>";
+  }
+  function $(id) { return document.getElementById(id); }
+  function all(node) { return Array.prototype.slice.call(node); }
+  function token() { return localStorage.getItem(LS_TOKEN) || ""; }
+  function esc(v) {
+    if (v === null || v === undefined) return "";
+    return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  var state = {
+    page: "overview",
+    feed: { limit: 20, offset: 0, status: "all", q: "", total: 0 },
+    dead: { offset: 0, total: 0, items: [] },
+    overview: null,
+    activity: null,
+    timer: null
+  };
+  var TITLES = {
+    overview: ["概览", "Telegram 反馈到 GitHub Issue 的整体情况"],
+    feed: ["反馈记录", "每一条被转入 Issue 的 Telegram 消息"],
+    dead: ["死信队列", "创建 Issue 失败的任务，可查看原始内容并重试"],
+    runtime: ["运行状态", "Bot、Webhook、仓库与手动操作"],
+    config: ["配置与体检", "当前生效的配置与 fail-closed 提醒"]
+  };
+
+  /* ---------------- M3 反馈组件 ---------------- */
+  function ripple(event) {
+    var host = event.target.closest ? event.target.closest(".btn,.icon-btn,.fab,.nav-list button,.seg button,.chip") : null;
+    if (!host || host.disabled) return;
+    var rect = host.getBoundingClientRect();
+    var size = Math.max(rect.width, rect.height);
+    var span = document.createElement("span");
+    span.className = "ripple";
+    span.style.width = span.style.height = size + "px";
+    span.style.left = (event.clientX - rect.left - size / 2) + "px";
+    span.style.top = (event.clientY - rect.top - size / 2) + "px";
+    host.appendChild(span);
+    setTimeout(function () { span.remove(); }, 520);
+  }
+
+  function snack(message, kind, action) {
+    var el = document.createElement("div");
+    el.className = "snackbar";
+    el.innerHTML = '<span style="flex:0 0 auto;opacity:.85">' + svg(ICO[kind] || "info", 18) + "</span>" +
+      '<span class="txt">' + esc(message) + "</span>" +
+      (action ? '<button class="act">' + esc(action.label) + "</button>" : "");
+    $("snackbars").appendChild(el);
+    function dismiss() {
+      el.classList.add("out");
+      setTimeout(function () { el.remove(); }, 250);
+    }
+    if (action) el.querySelector(".act").onclick = function () { action.run(); dismiss(); };
+    setTimeout(dismiss, action ? 8000 : 4600);
+  }
+
+  function openDialog(html, wide) {
+    var host = $("dialog-host");
+    host.innerHTML = '<div class="scrim"><div class="dialog' + (wide ? " wide" : "") + '">' + html + "</div></div>";
+    host.classList.remove("hidden");
+    var scrim = host.querySelector(".scrim");
+    scrim.onclick = function (e) { if (e.target === scrim) closeDialog(); };
+    return host.querySelector(".dialog");
+  }
+  function closeDialog() {
+    var host = $("dialog-host");
+    host.classList.add("hidden");
+    host.innerHTML = "";
+  }
+  function confirmDialog(title, body, confirmLabel, danger) {
+    return new Promise(function (resolve) {
+      var d = openDialog(
+        '<h2>' + esc(title) + '</h2><div class="d-body">' + esc(body) + "</div>" +
+        '<div class="d-actions"><button class="btn text" data-x="cancel">取消</button>' +
+        '<button class="btn ' + (danger ? "danger-solid" : "") + '" data-x="ok">' + esc(confirmLabel) + "</button></div>"
+      );
+      d.querySelector('[data-x="cancel"]').onclick = function () { closeDialog(); resolve(false); };
+      d.querySelector('[data-x="ok"]').onclick = function () { closeDialog(); resolve(true); };
+    });
+  }
+
+  /* ---------------- 数据 ---------------- */
+  async function call(path, options) {
+    var opts = options || {};
+    var headers = { Authorization: "Bearer " + token() };
+    if (opts.body) headers["Content-Type"] = "application/json";
+    var res = await fetch("/api" + path, {
+      method: opts.method || "GET",
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    if (res.status === 401) { showLogin("令牌无效或未设置"); throw new Error("令牌无效或未设置"); }
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    return data;
+  }
+
+  function showLogin(message) {
+    $("login").classList.remove("hidden");
+    $("app").classList.add("hidden");
+    if (message) snack(message, "err");
+  }
+  function showApp() {
+    $("login").classList.add("hidden");
+    $("app").classList.remove("hidden");
+  }
+  function setConn(text, kind) {
+    var el = $("conn");
+    el.className = "conn " + (kind || "");
+    el.innerHTML = '<span class="dot"></span>' + esc(text);
+  }
+
+  function go(page) {
+    state.page = page;
+    all(document.querySelectorAll(".page")).forEach(function (el) { el.classList.add("hidden"); });
+    var target = $("page-" + page);
+    if (target) {
+      target.classList.remove("hidden");
+      target.style.animation = "none";
+      void target.offsetWidth;
+      target.style.animation = "";
+    }
+    all(document.querySelectorAll("#nav button")).forEach(function (b) {
+      b.classList.toggle("active", b.dataset.page === page);
+    });
+    if (history.replaceState) history.replaceState(null, "", "#" + page);
+    var meta = TITLES[page] || TITLES.overview;
+    $("page-title").textContent = meta[0];
+    $("page-sub").textContent = meta[1];
+    if (page === "feed") loadFeed();
+    if (page === "dead") loadDead();
+    if (page === "runtime") loadOverview(true);
+  }
+
+  /* ---------------- 渲染 ---------------- */
+  function fmtTime(value) {
+    if (!value) return "-";
+    var d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleString("zh-CN", { hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+  function ago(value) {
+    if (!value) return "";
+    var diff = (Date.now() - new Date(value).getTime()) / 1000;
+    if (isNaN(diff)) return "";
+    if (diff < 60) return "刚刚";
+    if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
+    if (diff < 86400) return Math.floor(diff / 3600) + " 小时前";
+    if (diff < 86400 * 30) return Math.floor(diff / 86400) + " 天前";
+    return fmtTime(value);
+  }
+  function statusText(s) {
+    if (s === "done") return "已建 Issue";
+    if (s === "pending") return "处理中";
+    if (s === "failed") return "失败";
+    return s;
+  }
+  function emptyState(icon, title, sub) {
+    return '<div class="empty"><div class="ring">' + svg(icon, 26) + '</div><div class="t">' + esc(title) +
+      '</div><div class="s">' + esc(sub) + "</div></div>";
+  }
+  function banner(kind, title, items) {
+    return '<div class="banner ' + kind + '"><span class="ic">' + svg(kind === "ok" ? "check" : "alert", 22) + "</span><div><b>" +
+      esc(title) + "</b>" + (items && items.length
+        ? "<ul>" + items.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>" : "") + "</div></div>";
+  }
+  function kv(k, v, mono) {
+    return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v' + (mono ? " mono" : "") + '">' + v + "</span></div>";
+  }
+
+  function statCard(cls, icon, value, label, hint) {
+    return '<div class="stat ' + cls + '"><div class="top">' + svg(icon, 20) + "<span>" + esc(label) + "</span></div>" +
+      '<div class="num">' + esc(value) + '</div><div class="hint">' + esc(hint) + "</div></div>";
+  }
+
+  function renderOverview() {
+    var o = state.overview;
+    if (!o) return;
+    var st = o.stats || {};
+    $("stats").innerHTML =
+      statCard("c1", "feed", st.issues || 0, "已创建 Issue", "累计成功转发") +
+      statCard("c2", "runtime", st.pending || 0, "处理中", "已抢占未完成") +
+      statCard("c3", "dead", st.deadLetters || 0, "死信", "需要人工处理") +
+      statCard("c4", "bolt", st.updates || 0, "收到更新", "含去重前的投递");
+
+    var problems = o.problems || [];
+    $("overview-alert").innerHTML = problems.length === 0
+      ? banner("ok", "配置体检通过 · 当前配置可以直接接流量", [])
+      : banner("warn", "有 " + problems.length + " 项配置需要确认", problems);
+
+    var mode = (o.config && o.config.triggerMode) || "-";
+    var dry = o.config && o.config.dryRun;
+    $("side-note").innerHTML =
+      "<b>触发模式</b> " + esc(mode) + (dry ? ' · <span style="color:var(--error)">DRY_RUN</span>' : "") +
+      "<br /><b>目标仓库</b> " + esc((o.config && o.config.ghRepo) || "未配置") +
+      "<br /><b>最近 24 小时</b> " + esc(o.last24h || 0) + " 条";
+    setConn(dry ? "演练模式" : (st.issues || 0) + " 个 Issue", dry ? "warn" : (problems.length ? "warn" : "ok"));
+    $("nav-dead").textContent = String(st.deadLetters || 0);
+    $("nav-dead").className = "badge" + ((st.deadLetters || 0) === 0 ? " zero" : "");
+
+    var rows = o.recent || [];
+    $("recent").innerHTML = rows.length === 0
+      ? emptyState("inbox", "还没有反馈记录", "在 Telegram 里发一条消息，或点右下角「测试反馈」。")
+      : '<div class="list" style="margin:0 -24px">' + rows.map(function (it) {
+          var cls = it.status === "done" ? "ok" : (it.status === "failed" ? "err" : "warn");
+          var badge = it.issue_number ? "#" + it.issue_number : "⋯";
+          return '<div class="list-item">' +
+            '<span class="avatar ' + cls + '">' + esc(String(badge).slice(0, 4)) + "</span>" +
+            '<div style="min-width:0;flex:1">' +
+              '<div class="t truncate">' + esc(it.title || ("消息 " + it.message_id)) + "</div>" +
+              '<div class="m">' + esc(it.chat_id) + (it.thread_id ? " / 话题 " + esc(it.thread_id) : "") + " · " + ago(it.created_at) + "</div>" +
+            "</div>" +
+            '<span class="pill ' + esc(it.status) + '"><span class="dot"></span>' + statusText(it.status) + "</span>" +
+            (it.issue_url ? '<a class="icon-btn sm" href="' + esc(it.issue_url) + '" target="_blank" rel="noreferrer" title="打开 Issue">' + svg("external", 18) + "</a>" : "") +
+          "</div>";
+        }).join("") + "</div>";
+
+    var chats = o.topChats || [];
+    var max = Math.max.apply(null, chats.map(function (c) { return c.c; }).concat([1]));
+    $("top-chats").innerHTML = chats.length === 0
+      ? emptyState("inbox", "暂无来源", "有反馈转入后这里会显示排行。")
+      : chats.map(function (c) {
+          return '<div style="margin-bottom:16px">' +
+            '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:8px">' +
+              '<span class="mono">' + esc(c.chat_id) + (c.thread_id ? " / " + esc(c.thread_id) : "") + "</span>" +
+              '<span class="muted">' + esc(c.c) + " 条</span></div>" +
+            '<div class="bar-line"><i style="width:' + Math.round((c.c / max) * 100) + '%"></i></div></div>';
+        }).join("");
+
+    renderCommands();
+  }
+
+  function renderActivity() {
+    var a = state.activity;
+    if (!a) return;
+    var series = a.series || [];
+    var max = Math.max.apply(null, series.map(function (d) { return d.count; }).concat([1]));
+    $("chart").innerHTML = '<div class="chart">' + series.map(function (d, i) {
+      var h = Math.max(Math.round((d.count / max) * 100), 4);
+      var label = d.day.slice(5).replace("-", "/");
+      var show = series.length <= 10 || i % 2 === 0 || i === series.length - 1;
+      return '<div class="col" title="' + esc(d.day) + "：" + d.count + ' 条">' +
+        (d.count > 0 ? '<span class="cv">' + d.count + "</span>" : "") +
+        '<div class="bar' + (d.count === 0 ? " zero" : "") + '" style="height:' + h + '%"></div>' +
+        '<span class="x">' + (show ? esc(label) : "") + "</span></div>";
+    }).join("") + "</div>";
+  }
+
+  function renderFeed(items) {
+    if (!items.length) {
+      $("feed-table").innerHTML = emptyState("inbox", "没有匹配的记录", "换个筛选条件，或先发一条反馈。");
+      return;
+    }
+    var rows = items.map(function (it) {
+      var issue = it.issue_number
+        ? '<a href="' + esc(it.issue_url) + '" target="_blank" rel="noreferrer">#' + esc(it.issue_number) + "</a>"
+        : '<span class="muted">-</span>';
+      return "<tr>" +
+        '<td><div class="cell-main">' + fmtTime(it.created_at) + '</div><div class="cell-sub">' + ago(it.created_at) + "</div></td>" +
+        '<td><div class="truncate cell-main" title="' + esc(it.title || "") + '">' + esc(it.title || "(未命名反馈)") + "</div>" +
+          '<div class="cell-sub mono">' + esc(it.repo) + "</div></td>" +
+        '<td class="mono">' + esc(it.chat_id) + (it.thread_id ? " / " + esc(it.thread_id) : "") + "</td>" +
+        '<td class="mono">' + esc(it.message_id) + "</td>" +
+        '<td class="mono">' + esc(it.sender_id === null || it.sender_id === undefined ? "-" : it.sender_id) + "</td>" +
+        "<td>" + issue + "</td>" +
+        '<td><span class="pill ' + esc(it.status) + '"><span class="dot"></span>' + statusText(it.status) + "</span></td></tr>";
+    }).join("");
+    $("feed-table").innerHTML = '<div style="overflow-x:auto"><table><thead><tr>' +
+      "<th>时间</th><th>反馈标题</th><th>会话 / 话题</th><th>消息</th><th>发送者</th><th>Issue</th><th>状态</th>" +
+      "</tr></thead><tbody>" + rows + "</tbody></table></div>";
+  }
+
+  function renderDead(items) {
+    if (!items.length) {
+      $("dead-table").innerHTML = emptyState("check", "队列是空的", "所有反馈都成功转成了 Issue。");
+      return;
+    }
+    var rows = items.map(function (it) {
+      return "<tr>" +
+        '<td><div class="cell-main">' + fmtTime(it.created_at) + '</div><div class="cell-sub">' + ago(it.created_at) + "</div></td>" +
+        '<td><div class="truncate" style="max-width:460px" title="' + esc(it.error) + '">' + esc(it.error) + "</div></td>" +
+        '<td><span class="chip">' + esc(it.attempts) + " 次</span></td>" +
+        '<td><div class="actions">' +
+          '<button class="btn text sm" data-dead-view="' + esc(it.id) + '">详情</button>' +
+          '<button class="btn tonal sm" data-dead-retry="' + esc(it.id) + '">' + svg("rotate", 16) + "重试</button>" +
+          '<button class="btn danger sm" data-dead-del="' + esc(it.id) + '">' + svg("trash", 16) + "</button>" +
+        "</div></td></tr>";
+    }).join("");
+    $("dead-table").innerHTML = '<div style="overflow-x:auto"><table><thead><tr>' +
+      "<th>时间</th><th>错误</th><th>尝试</th><th>操作</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+  }
+
+  function renderRuntime(o) {
+    var bot = o.bot || {};
+    $("rt-bot").innerHTML = bot.username
+      ? kv("用户名", "@" + esc(bot.username), true) + kv("Bot ID", esc(bot.id), true) +
+        kv("状态", '<span class="pill done"><span class="dot"></span>在线</span>')
+      : kv("状态", '<span class="pill failed"><span class="dot"></span>不可用</span>') + kv("错误", esc(bot.error || "未检测"));
+
+    var hook = o.webhook || {};
+    $("rt-hook").innerHTML = hook.error
+      ? kv("状态", '<span class="pill failed"><span class="dot"></span>查询失败</span>') + kv("错误", esc(hook.error))
+      : kv("地址", esc(hook.url || "-"), true) +
+        kv("待处理", esc(hook.pending === undefined ? "-" : hook.pending)) +
+        kv("最近错误", hook.lastError ? '<span style="color:var(--error)">' + esc(String(hook.lastError).slice(0, 48)) + "</span>" : "无");
+
+    var repo = o.repo || {};
+    $("rt-repo").innerHTML = repo.fullName
+      ? kv("仓库", esc(repo.fullName), true) +
+        kv("可见性", repo.private ? '<span class="chip">私有</span>' : '<span class="chip">公开</span>') +
+        kv("Issues", repo.hasIssues ? '<span class="pill done"><span class="dot"></span>已启用</span>' : '<span class="pill failed"><span class="dot"></span>已关闭</span>')
+      : kv("状态", esc(repo.error || "未配置 GH_REPO"));
+  }
+
+  function renderCommands() {
+    var el = $("cmd-table");
+    if (!el || el.dataset.done === "1") return;
+    var rows = [
+      ["/issue 内容", "提交反馈并创建 Issue（同义：/bug、/suggest），也可只发图片"],
+      ["/issues [数量]", "查看本群最近的反馈，默认 5 条"],
+      ["/issues all [数量]", "跨会话查看全部反馈（需 TG_ALLOWED_USER_IDS 授权）"],
+      ["/link", "回复某条消息后查询它对应的 Issue"],
+      ["/stats", "统计信息（总数 / 24 小时 / 死信）"],
+      ["/status", "运行状态与 Webhook 情况"],
+      ["/help · /start", "显示帮助"]
+    ];
+    el.innerHTML = rows.map(function (r) {
+      return kv(r[0], esc(r[1]));
+    }).join("");
+    el.dataset.done = "1";
+  }
+
+  function renderConfig(o) {
+    var problems = o.problems || [];
+    $("config-alert").innerHTML = problems.length === 0
+      ? banner("ok", "配置体检通过", [])
+      : banner("warn", "需要确认的配置项", problems);
+
+    var c = o.config || {};
+    function list(value) {
+      if (Array.isArray(value)) {
+        return value.length ? value.map(function (v) { return '<span class="chip">' + esc(v) + "</span>"; }).join(" ") : '<span class="muted">(空)</span>';
+      }
+      if (typeof value === "boolean") return value ? "是" : "否";
+      if (value === null || value === "") return '<span class="muted">(空)</span>';
+      return esc(value);
+    }
+    function group(title, rows) {
+      return '<div class="group-title">' + esc(title) + "</div>" +
+        rows.map(function (r) { return kv(r[0], list(c[r[1]]), r[2]); }).join("");
+    }
+    $("config-body").innerHTML =
+      group("触发", [["模式", "triggerMode"], ["命令白名单", "triggerCommands"], ["会话白名单", "allowedChatIds", true], ["话题白名单", "topicIds", true], ["告警会话", "adminChatId", true]]) +
+      group("GitHub", [["目标仓库", "ghRepo", true], ["API 地址", "ghApiBase", true], ["默认标签", "defaultLabels"], ["允许的标签", "allowedLabels"], ["默认负责人", "defaultAssignee", true]]) +
+      group("附件", [["转存仓库", "assetRepo", true], ["分支", "assetBranch", true], ["路径前缀", "assetPrefix", true], ["大小上限", "assetMaxBytes", true]]) +
+      group("安全与限流", [["每用户 / 分钟", "ratePerMin"], ["每用户 / 天", "ratePerDay"], ["密钥脱敏", "redactEnable"], ["匿名化", "anonymizeSender"], ["时区", "timeZone"], ["演练模式", "dryRun"]]);
+  }
+
+  /* ---------------- 加载 ---------------- */
+  async function loadOverview(live) {
+    var o = await call("/overview" + (live ? "?live=1" : ""));
+    state.overview = o;
+    renderOverview();
+    renderConfig(o);
+    if (live) renderRuntime(o);
+  }
+  async function loadActivity() {
+    state.activity = await call("/activity?days=14");
+    renderActivity();
+  }
+  async function loadFeed() {
+    var f = state.feed;
+    var data = await call("/issues?limit=" + f.limit + "&offset=" + f.offset +
+      "&status=" + encodeURIComponent(f.status) + "&q=" + encodeURIComponent(f.q));
+    f.total = data.total;
+    renderFeed(data.items);
+    var pages = Math.max(Math.ceil(f.total / f.limit), 1);
+    $("feed-meta").textContent = "共 " + f.total + " 条 · 第 " + (Math.floor(f.offset / f.limit) + 1) + " / " + pages + " 页";
+    $("feed-prev").disabled = f.offset === 0;
+    $("feed-next").disabled = f.offset + f.limit >= f.total;
+  }
+  async function loadDead() {
+    var data = await call("/dead-letters?limit=20&offset=" + state.dead.offset);
+    state.dead.total = data.total;
+    state.dead.items = data.items;
+    renderDead(data.items);
+    $("nav-dead").textContent = String(data.total);
+    $("nav-dead").className = "badge" + (data.total === 0 ? " zero" : "");
+  }
+  async function refreshAll(live) {
+    try {
+      await loadOverview(Boolean(live));
+      if (live) renderRuntime(state.overview);
+      if (state.page === "overview" || state.page === "runtime") await loadActivity();
+      await loadFeed();
+      if (state.page === "dead") await loadDead();
+    } catch (error) {
+      if (String(error.message).indexOf("令牌") === -1) snack(error.message, "err");
+    }
+  }
+
+  /* ---------------- 动作 ---------------- */
+  function openTestDialog() {
+    var d = openDialog(
+      '<div class="d-icon">' + svg("bolt", 22) + "</div><h2>测试一条反馈</h2>" +
+      '<div class="d-body">会走完整流程：白名单 → 限流 → 渲染 → 建 Issue。DRY_RUN 打开时只渲染不创建。</div>' +
+      '<textarea id="dlg-text" style="margin-top:18px">控制台测试：结账页点击下单后白屏</textarea>' +
+      '<div class="d-actions"><button class="btn text" data-x="cancel">取消</button>' +
+      '<button class="btn" data-x="ok">' + svg("send", 18) + "发送</button></div>"
+    );
+    d.querySelector('[data-x="cancel"]').onclick = closeDialog;
+    d.querySelector('[data-x="ok"]').onclick = async function () {
+      var text = d.querySelector("#dlg-text").value;
+      closeDialog();
+      try {
+        var data = await call("/actions/test-issue", { method: "POST", body: { text: text } });
+        var r = data.result || {};
+        snack("流程返回：" + r.status + (r.issueUrl ? " · " + r.issueUrl : ""), r.status === "failed" ? "err" : "ok", r.issueUrl ? { label: "打开", run: function () { window.open(r.issueUrl, "_blank"); } } : null);
+        await refreshAll(false);
+      } catch (e) { snack(e.message, "err"); }
+    };
+  }
+
+  function bind() {
+    all(document.querySelectorAll("#nav button")).forEach(function (b) {
+      b.onclick = function () { go(b.dataset.page); };
+    });
+    all(document.querySelectorAll("[data-goto]")).forEach(function (b) {
+      b.onclick = function () { go(b.dataset.goto); };
+    });
+    $("fab").onclick = openTestDialog;
+
+    $("btn-logout").onclick = function () {
+      localStorage.removeItem(LS_TOKEN);
+      if (state.timer) clearInterval(state.timer);
+      $("btn-auto").classList.remove("on");
+      showLogin();
+    };
+    $("btn-refresh").onclick = function () { refreshAll(state.page === "runtime"); };
+    $("btn-auto").onclick = function () {
+      if (state.timer) { clearInterval(state.timer); state.timer = null; $("btn-auto").classList.remove("on"); snack("已关闭自动刷新", "info"); return; }
+      state.timer = setInterval(function () { refreshAll(false); }, 15000);
+      $("btn-auto").classList.add("on");
+      snack("每 15 秒自动刷新", "info");
+    };
+    $("btn-theme").onclick = function () {
+      var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      applyTheme(next);
+    };
+
+    $("feed-q").addEventListener("input", function () {
+      clearTimeout(window.__q);
+      window.__q = setTimeout(function () {
+        state.feed.q = $("feed-q").value.trim();
+        state.feed.offset = 0;
+        loadFeed().catch(function (e) { snack(e.message, "err"); });
+      }, 320);
+    });
+    $("feed-limit").onchange = function () {
+      state.feed.limit = Number($("feed-limit").value);
+      state.feed.offset = 0;
+      loadFeed().catch(function (e) { snack(e.message, "err"); });
+    };
+    all(document.querySelectorAll("#feed-status button")).forEach(function (b) {
+      b.dataset.label = b.textContent.trim();
+      b.onclick = function () {
+        all(document.querySelectorAll("#feed-status button")).forEach(function (x) {
+          var active = x === b;
+          x.classList.toggle("active", active);
+          x.innerHTML = (active ? svg("check", 16) : "") + esc(x.dataset.label);
+        });
+        state.feed.status = b.dataset.status;
+        state.feed.offset = 0;
+        loadFeed().catch(function (e) { snack(e.message, "err"); });
+      };
+    });
+    $("feed-prev").onclick = function () {
+      state.feed.offset = Math.max(0, state.feed.offset - state.feed.limit);
+      loadFeed().catch(function (e) { snack(e.message, "err"); });
+    };
+    $("feed-next").onclick = function () {
+      if (state.feed.offset + state.feed.limit < state.feed.total) {
+        state.feed.offset += state.feed.limit;
+        loadFeed().catch(function (e) { snack(e.message, "err"); });
+      }
+    };
+    $("dead-reload").onclick = function () { loadDead().catch(function (e) { snack(e.message, "err"); }); };
+
+    $("btn-selfcheck").onclick = async function () {
+      try {
+        var data = await call("/selfcheck");
+        await loadOverview(true);
+        renderRuntime(state.overview);
+        snack(data.ok ? "自检通过，没有发现问题" : "发现 " + data.problems.length + " 个问题", data.ok ? "ok" : "err");
+      } catch (e) { snack(e.message, "err"); }
+    };
+    $("btn-set-hook").onclick = async function () {
+      if (!(await confirmDialog("设置 Telegram Webhook？", "会把 Telegram 的消息接收地址指向当前 Worker，立即生效。", "设置"))) return;
+      try {
+        var d = await call("/actions/set-webhook", { method: "POST" });
+        snack("已设置：" + d.url, "ok");
+        await loadOverview(true);
+        renderRuntime(state.overview);
+      } catch (e) { snack(e.message, "err"); }
+    };
+    $("btn-del-hook").onclick = async function () {
+      if (!(await confirmDialog("删除 Telegram Webhook？", "删除后 Bot 将不再接收任何消息，反馈链路会中断。", "删除", true))) return;
+      try {
+        await call("/actions/delete-webhook", { method: "POST" });
+        snack("已删除 Webhook", "ok");
+        await loadOverview(true);
+        renderRuntime(state.overview);
+      } catch (e) { snack(e.message, "err"); }
+    };
+    $("btn-test").onclick = openTestDialog;
+
+    $("dead-table").onclick = async function (event) {
+      var el = event.target.closest("button");
+      if (!el) return;
+      var id = el.dataset.deadView || el.dataset.deadRetry || el.dataset.deadDel;
+      if (!id) return;
+      try {
+        if (el.dataset.deadView) {
+          var detail = await call("/dead-letters/" + id);
+          var d = openDialog(
+            '<div class="d-icon">' + svg("dead", 22) + "</div><h2>死信 #" + esc(id) + "</h2>" +
+            '<div class="d-body">下面是这条失败任务的原始记录。</div>' +
+            '<pre style="margin-top:16px">' + esc(JSON.stringify(detail.item, null, 2)) + "</pre>" +
+            '<div class="d-actions"><button class="btn text" data-x="copy">' + svg("copy", 18) + "复制</button>" +
+            '<button class="btn" data-x="close">关闭</button></div>', true);
+          d.querySelector('[data-x="close"]').onclick = closeDialog;
+          d.querySelector('[data-x="copy"]').onclick = function () {
+            navigator.clipboard.writeText(JSON.stringify(detail.item, null, 2)).then(function () { snack("已复制", "ok"); });
+          };
+        } else if (el.dataset.deadRetry) {
+          el.disabled = true;
+          var res = await call("/dead-letters/" + id + "/retry", { method: "POST" });
+          snack("重试结果：" + res.result.status + (res.result.issueUrl ? " · " + res.result.issueUrl : ""), res.ok ? "ok" : "err");
+          await loadDead();
+          await loadOverview(false);
+          renderOverview();
+        } else {
+          if (!(await confirmDialog("删除死信 #" + id + "？", "这条失败记录会被永久删除，原始 update 内容也将丢失。", "删除", true))) { return; }
+          await call("/dead-letters/" + id, { method: "DELETE" });
+          snack("已删除", "ok");
+          await loadDead();
+          await loadOverview(false);
+          renderOverview();
+        }
+      } catch (e) { snack(e.message, "err"); el.disabled = false; }
+    };
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(LS_THEME, theme);
+    $("btn-theme").textContent = theme === "dark" ? "浅色" : "深色";
+  }
+
+  function boot() {
+    var theme = localStorage.getItem(LS_THEME);
+    if (!theme) theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    applyTheme(theme);
+
+    all(document.querySelectorAll("#nav button")).forEach(function (b) {
+      b.innerHTML = svg(b.dataset.icon, 20) + "<span>" + b.innerHTML + "</span>";
+    });
+    var active = document.querySelector("#feed-status button.active");
+    if (active) { active.dataset.label = active.textContent.trim(); active.innerHTML = svg("check", 16) + esc(active.dataset.label); }
+
+    document.addEventListener("pointerdown", ripple);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDialog(); });
+
+    var hash = window.location.hash || "";
+    var m = /(?:^|[#&])token=([^&]+)/.exec(hash);
+    if (m && m[1]) localStorage.setItem(LS_TOKEN, decodeURIComponent(m[1]));
+    var pm = /(?:^|[#&])(?:page=)?(overview|feed|dead|runtime|config)(?:$|[&#])/.exec(hash);
+    var startPage = pm && pm[1] ? pm[1] : "overview";
+    if (pm) history.replaceState(null, "", "#" + startPage);
+
+    $("btn-login").onclick = async function () {
+      var value = $("token-input").value.trim();
+      if (!value) return snack("请输入 ADMIN_TOKEN", "err");
+      localStorage.setItem(LS_TOKEN, value);
+      showApp();
+      await refreshAll(true);
+    };
+    $("token-input").addEventListener("keydown", function (e) { if (e.key === "Enter") $("btn-login").click(); });
+
+    bind();
+
+    if (token()) {
+      showApp();
+      go(startPage);
+      refreshAll(false);
+      setTimeout(function () {
+        if (state.page === "runtime") return;
+        loadOverview(true).then(renderRuntime).catch(function () {});
+      }, 400);
+    } else {
+      showLogin();
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

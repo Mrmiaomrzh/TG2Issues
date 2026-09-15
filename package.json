@@ -1,0 +1,55 @@
+{
+  "name": "tg2issues",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "把 Telegram 的提示/反馈自动转发成 GitHub Issue 的机器人（Cloudflare Workers + D1），自带 Web 控制台与 Issue→Telegram 双向同步",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "github",
+    "issues",
+    "cloudflare-workers",
+    "d1",
+    "grammy",
+    "hono"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mrmiaomrzh/TG2Issues.git"
+  },
+  "homepage": "https://github.com/Mrmiaomrzh/TG2Issues#readme",
+  "bugs": {
+    "url": "https://github.com/Mrmiaomrzh/TG2Issues/issues"
+  },
+  "author": "MRMIAO",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/cf.mjs dev",
+    "deploy": "node scripts/cf.mjs deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cf-typegen": "node scripts/cf.mjs types",
+    "db:create": "node scripts/cf.mjs d1 create tg2issues",
+    "db:migrate:local": "node scripts/cf.mjs d1 migrations apply tg2issues --local",
+    "db:migrate:remote": "node scripts/cf.mjs d1 migrations apply tg2issues --remote",
+    "db:demo": "node scripts/cf.mjs d1 execute tg2issues --local --file=scripts/demo-data.sql",
+    "db:clear": "node scripts/cf.mjs d1 execute tg2issues --local --command \"DELETE FROM issue_map; DELETE FROM dead_letters; DELETE FROM processed_updates; DELETE FROM rate_events; DELETE FROM gh_deliveries;\"",
+    "tail": "node scripts/cf.mjs tail tg2issues",
+    "deploy:ps": "pwsh -File scripts/deploy.ps1"
+  },
+  "dependencies": {
+    "grammy": "^1.0.0",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0",
+    "wrangler": "^4.0.0"
+  }
+}

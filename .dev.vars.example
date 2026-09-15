@@ -1,0 +1,11 @@
+# 本地开发用（wrangler dev 会自动加载）。切勿提交到仓库。
+# 生产环境请用 "wrangler secret put NAME" 设置同名密钥。
+TG_BOT_TOKEN="123456:REPLACE_WITH_BOTFATHER_TOKEN"
+# 随机串，例如 openssl rand -hex 32；同时用于 URL 路径与 X-Telegram-Bot-Api-Secret-Token
+TG_WEBHOOK_SECRET="REPLACE_WITH_RANDOM_HEX_32"
+# Fine-grained PAT：Issues 读写 + Contents 读写（转存图片必需）
+GH_TOKEN="github_pat_REPLACE_ME"
+# GitHub 反向 Webhook 的 secret（Issue 评论/关闭回流 TG 用）
+GH_WEBHOOK_SECRET="REPLACE_WITH_ANOTHER_RANDOM_HEX_32"
+# 控制台与数据接口令牌：/ 页面登录、/api/*
+ADMIN_TOKEN="REPLACE_WITH_ADMIN_TOKEN"

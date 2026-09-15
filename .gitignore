@@ -1,0 +1,20 @@
+node_modules/
+.wrangler/
+dist/
+*.log
+data/
+.env
+.tmp/
+
+# 私密配置：真实群 ID / 仓库 / D1 id / 密钥，永远不要提交
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+wrangler.local.toml
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

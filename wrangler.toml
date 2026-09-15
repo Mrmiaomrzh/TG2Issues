@@ -1,0 +1,52 @@
+# TG2Issues 部署模板
+#
+# 私密配置（真实群 ID / 仓库 / D1 id）请写进 wrangler.local.toml —— 它已在 .gitignore 里，
+# scripts/cf.mjs 会自动优先使用它，所以本地部署不会被这份模板覆盖。
+name = "tg2issues"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+workers_dev = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tg2issues"
+# 执行 npm run db:create 后，把输出的 database_id 填到这里（或填进 wrangler.local.toml）
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# ---------------------------------------------------------------------------
+# 非敏感配置；密钥用 "npx wrangler secret put NAME"（本地调试放 .dev.vars）
+# 列表类变量用英文逗号分隔；白名单留空 = 全部拒绝（fail-closed）
+# ---------------------------------------------------------------------------
+[vars]
+# command（只认 /issue 等指令，普通群聊推荐）| topic（指定话题内全部消息）| all（白名单会话全部消息）
+TG_TRIGGER_MODE = "command"
+TG_TRIGGER_COMMANDS = "/issue,/bug,/suggest"
+# 允许使用指令的会话（群/频道 id，形如 -1001234567890）
+TG_ALLOWED_CHAT_IDS = ""
+# 允许跨会话查询（/issues all）的用户 id
+TG_ALLOWED_USER_IDS = ""
+# topic 模式下允许的 message_thread_id 列表
+TG_TOPIC_IDS = ""
+# 失败告警接收会话（通常是管理员私聊 id）
+TG_ADMIN_CHAT_ID = ""
+# 目标仓库 owner/repo
+GH_REPO = ""
+GH_API_BASE = "https://api.github.com"
+GH_DEFAULT_LABELS = "from-telegram"
+GH_DEFAULT_ASSIGNEE = ""
+# 允许从正文 #标签 映射过来的 label
+ALLOWED_LABELS = "bug,suggestion,question,docs,enhancement,from-telegram"
+# 图片转存：留空则用 GH_REPO；建议使用一个公开的 assets 仓库
+ASSET_REPO = ""
+ASSET_BRANCH = "main"
+ASSET_PREFIX = "tg"
+ASSET_MAX_BYTES = "5242880"
+RATE_PER_MIN = "3"
+RATE_PER_DAY = "20"
+REDACT_ENABLE = "true"
+ANONYMIZE_SENDER = "false"
+DRY_RUN = "false"
